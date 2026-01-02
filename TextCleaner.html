@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pembersih Teks Selektif</title>
+    <style>
+        /* --- GLOBAL LAYOUT & SIDEBAR CSS --- */
+        :root {
+            --sidebar-width: 250px;
+            --bg-color: #f4f4f9;
+            --sidebar-bg: #282828;
+            --accent: #007bff;
+            --text-light: #fff;
+        }
+        body {
+            display: flex;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            min-height: 100vh;
+        }
+        #sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            color: var(--text-light);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+        }
+        #sidebar .brand {
+            font-size: 1.2rem;
+            text-align: center;
+            padding: 20px 0;
+            font-weight: bold;
+            border-bottom: 1px solid #444;
+            margin-bottom: 10px;
+            color: white;
+            text-decoration: none;
+        }
+        #sidebar a.nav-link {
+            display: block;
+            color: #ccc;
+            padding: 15px 25px;
+            text-decoration: none;
+            font-size: 1rem;
+            border-left: 5px solid transparent;
+            transition: all 0.3s;
+        }
+        #sidebar a.nav-link:hover,
+        #sidebar a.nav-link.active {
+            background-color: #3e3e3e;
+            color: #fff;
+            border-left: 5px solid var(--accent);
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 30px;
+            overflow-y: auto;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100%; height: auto; }
+            .main-content { height: auto; }
+        }
+
+        /* --- SPECIFIC CSS --- */
+        label { display: block; margin-top: 15px; font-weight: bold; }
+        textarea, input[type="text"] {
+            width: 100%; padding: 10px; margin-top: 5px;
+            border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
+        }
+        textarea { resize: vertical; }
+        input[type="text"] { width: 100px; text-align: center; }
+        button {
+            background-color: #dc3545; color: white;
+            padding: 10px 15px; border: none; border-radius: 4px;
+            cursor: pointer; margin-top: 20px; font-size: 16px;
+        }
+        button:hover { background-color: #c82333; }
+        #outputContainer { margin-top: 30px; padding: 15px; background-color: #fff; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <nav id="sidebar">
+        <div class="brand">My Tools</div>
+        <a href="index.html" class="nav-link">Advanced Cleaner</a>
+        <a href="TextCleaner.html" class="nav-link active">Quote Cleaner</a>
+        <a href="PearsonMomentProductV2.html" class="nav-link">Pearson Calculator</a>
+    </nav>
+
+    <!-- CONTENT -->
+    <div class="main-content">
+        <h1>Pembersih Format Teks Selektif (Kutipan)</h1>
+        <p>Fungsi ini hanya akan menghapus <strong>Simbol Indikator</strong> jika simbol tersebut berada <strong>di dalam</strong> pasangan tanda kutip ganda (").</p>
+
+        <label for="teksInput">1. Masukkan Teks:</label>
+        <textarea id="teksInput" rows="5" placeholder='Contoh: *lorem* "dolor *sit* amet"'>*lorem ipsum* "dolor *sit* amet" Ini "contoh *teks* lain".</textarea>
+
+        <label for="simbolIndikator">2. Simbol Indikator yang Dihilangkan DALAM KUTIPAN:</label>
+        <input type="text" id="simbolIndikator" value="*" maxlength="5" placeholder="Misalnya: *">
+
+        <button onclick="bersihkanTeksSelektif()">3. Bersihkan Simbol Hanya Dalam Kutipan</button>
+
+        <div id="outputContainer">
+            <h2>Hasil Teks Bersih Selektif:</h2>
+            <textarea id="teksOutput" rows="5" readonly placeholder="Hasil akan muncul di sini..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        function bersihkanTeksSelektif() {
+            const teksAwal = document.getElementById('teksInput').value;
+            const simbol = document.getElementById('simbolIndikator').value.trim();
+            let teksHasil = teksAwal;
+
+            if (!simbol) {
+                document.getElementById('teksOutput').value = teksAwal;
+                return;
+            }
+
+            const simbolRegexEscaped = simbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regexKutipan = /(".*?")/g;
+
+            teksHasil = teksAwal.replace(regexKutipan, (match) => {
+                const regexSimbol = new RegExp(simbolRegexEscaped, 'g');
+                return match.replace(regexSimbol, '');
+            });
+
+            document.getElementById('teksOutput').value = teksHasil;
+        }
+        document.addEventListener('DOMContentLoaded', bersihkanTeksSelektif);
+    </script>
+</body>
+</html>

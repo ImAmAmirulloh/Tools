@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Korelasi Pearson & Reliabilitas</title>
+    <style>
+        /* --- GLOBAL LAYOUT & SIDEBAR CSS --- */
+        :root {
+            --sidebar-width: 250px;
+            --bg-color: #f4f4f9;
+            --sidebar-bg: #282828;
+            --accent: #007bff;
+            --text-light: #fff;
+        }
+        body {
+            display: flex;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            min-height: 100vh;
+        }
+        #sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            color: var(--text-light);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+        }
+        #sidebar .brand {
+            font-size: 1.2rem;
+            text-align: center;
+            padding: 20px 0;
+            font-weight: bold;
+            border-bottom: 1px solid #444;
+            margin-bottom: 10px;
+            color: white;
+            text-decoration: none;
+        }
+        #sidebar a.nav-link {
+            display: block;
+            color: #ccc;
+            padding: 15px 25px;
+            text-decoration: none;
+            font-size: 1rem;
+            border-left: 5px solid transparent;
+            transition: all 0.3s;
+        }
+        #sidebar a.nav-link:hover,
+        #sidebar a.nav-link.active {
+            background-color: #3e3e3e;
+            color: #fff;
+            border-left: 5px solid var(--accent);
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 30px;
+            overflow-y: auto;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100%; height: auto; }
+            .main-content { height: auto; }
+        }
+
+        /* --- CALCULATOR SPECIFIC CSS --- */
+        .input-section { display: flex; align-items: flex-start; margin-bottom: 30px; }
+        .input-group { margin-right: 40px; }
+        .input-row { display: flex; align-items: center; margin-bottom: 10px; }
+        .input-row label { width: 80px; font-weight: bold; text-align: right; margin-right: 10px; }
+        .input-row input { width: 80px; padding: 5px; border: 1px solid #000; text-align: center; font-size: 1em; }
+        
+        button.calc-btn {
+            padding: 10px 20px; background-color: #007bff; color: white;
+            border: none; border-radius: 5px; cursor: pointer; font-size: 1em; margin-top: 20px;
+        }
+        button.calc-btn:hover { background-color: #0056b3; }
+
+        .calculation-steps { margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; }
+        
+        /* Step Row Styling */
+        .calc-step { display: flex; align-items: center; margin-bottom: 25px; font-size: 1.1em; font-weight: bold; }
+        .calc-step span.label { margin-right: 10px; }
+        
+        /* Fraction Styling */
+        .fraction-container { display: flex; flex-direction: column; align-items: center; margin: 0 5px; }
+        .numerator, .denominator { padding: 2px 5px; white-space: nowrap; }
+        .fraction-line { width: 100%; border-bottom: 1px solid black; margin: 0; padding: 0; }
+        
+        /* Box/Number Styling */
+        .result-box { padding: 2px 5px; margin: 0 2px; font-family: 'Courier New', Courier, monospace; display: inline-block; text-align: center; }
+        .sqrt-symbol { font-size: 1.5em; margin-right: 2px; line-height: 1; }
+        
+        .section-separator { margin: 40px 0; border: none; border-top: 3px double #aaa; }
+
+        /* Reliability Result Box */
+        .reliability-status {
+            margin-top: 20px; padding: 15px;
+            background: #f0f7ff; border-left: 5px solid #007bff;
+            font-size: 1rem; font-weight: normal;
+        }
+        .status-badge { font-weight: bold; padding: 2px 6px; border-radius: 4px; color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <nav id="sidebar">
+        <div class="brand">My Tools</div>
+        <a href="index.html" class="nav-link">Advanced Cleaner</a>
+        <a href="TextCleaner.html" class="nav-link">Quote Cleaner</a>
+        <a href="PearsonMomentProductV2.html" class="nav-link active">Pearson Calculator</a>
+    </nav>
+
+    <!-- CONTENT -->
+    <div class="main-content">
+        <h2>Kalkulator Korelasi Pearson, Uji t & Reliabilitas</h2>
+        <div class="input-section">
+            <div class="input-group">
+                <div class="input-row"><label for="sumX">ΣX</label><input type="text" id="sumX" value="36"></div>
+                <div class="input-row"><label for="sumY">ΣY</label><input type="text" id="sumY" value="192"></div>
+                <div class="input-row"><label for="sumX2">ΣX²</label><input type="text" id="sumX2" value="138"></div>
+                <div class="input-row"><label for="sumY2">ΣY²</label><input type="text" id="sumY2" value="3762"></div>
+                <div class="input-row"><label for="sumXY">ΣXY</label><input type="text" id="sumXY" value="705"></div>
+                <div class="input-row"><label for="n">n</label><input type="text" id="n" value="10"></div>
+                <!-- Added rTabel Input -->
+                <div class="input-row"><label for="rTabel">r Tabel</label><input type="text" id="rTabel" value="0.707"></div>
+                
+                <button class="calc-btn" onclick="hitungKorelasiDanUjiT()">Hitung Semua Langkah</button>
+            </div>
+        </div>
+
+        <!-- Output Containers -->
+        <div class="calculation-steps" id="outputSteps"></div>
+        <hr class="section-separator">
+        <div class="calculation-steps" id="outputUjiT"></div>
+        <hr class="section-separator">
+        <div class="calculation-steps" id="outputReliabilitas"></div>
+    </div>
+
+    <script>
+        // Helper to display numbers
+        function createBox(value, decimals = null) {
+            return `<span class="result-box">${value}</span>`;
+        }
+
+        // Helper to create fraction layout
+        function createFraction(numeratorHTML, denominatorHTML) {
+            return `
+                <div class="fraction-container">
+                    <span class="numerator">${numeratorHTML}</span>
+                    <span class="fraction-line"></span>
+                    <span class="denominator">${denominatorHTML}</span>
+                </div>
+            `;
+        }
+
+        function hitungKorelasiDanUjiT() {
+            // Get inputs
+            const n = parseFloat(document.getElementById('n').value);
+            const sumX = parseFloat(document.getElementById('sumX').value);
+            const sumY = parseFloat(document.getElementById('sumY').value);
+            const sumX2 = parseFloat(document.getElementById('sumX2').value);
+            const sumY2 = parseFloat(document.getElementById('sumY2').value);
+            const sumXY = parseFloat(document.getElementById('sumXY').value);
+            const rTabel = parseFloat(document.getElementById('rTabel').value);
+
+            const outputRDiv = document.getElementById('outputSteps');
+            const outputTDiv = document.getElementById('outputUjiT');
+            const outputRelDiv = document.getElementById('outputReliabilitas');
+            
+            if ([n, sumX, sumY, sumX2, sumY2, sumXY].some(isNaN)) {
+                outputRDiv.innerHTML = "<p style='color: red;'>Harap isi semua input dengan angka.</p>";
+                return;
+            }
+
+            // ==========================================
+            // STEP 1: PEARSON CORRELATION (DETAILED)
+            // ==========================================
+            
+            // Pre-calculations
+            const n_sumXY = n * sumXY;
+            const sumX_sumY = sumX * sumY;
+            const n_sumX2 = n * sumX2;
+            const sumX_sq = sumX * sumX;
+            const n_sumY2 = n * sumY2;
+            const sumY_sq = sumY * sumY;
+            
+            const numerator = n_sumXY - sumX_sumY;
+            const partX_sub = n_sumX2 - sumX_sq;
+            const partY_sub = n_sumY2 - sumY_sq;
+            const product_parts = partX_sub * partY_sub;
+            const denominator_r = Math.sqrt(product_parts);
+            const r_value = numerator / denominator_r;
+
+            let outputRHTML = '<h3>1. Perhitungan Korelasi Pearson (r)</h3>';
+            
+            // Step 1.1: Substitution
+            outputRHTML += `
+                <div class="calc-step">
+                    <span class="label">r =</span>
+                    ${createFraction(
+                        `${createBox(n)}(${createBox(sumXY)}) - (${createBox(sumX)})(${createBox(sumY)})`,
+                        `<span class="sqrt-symbol">√</span>[${createBox(n)}(${createBox(sumX2)}) - (${createBox(sumX)})²][${createBox(n)}(${createBox(sumY2)}) - (${createBox(sumY)})²]`
+                    )}
+                </div>`;
+            
+            // Step 1.2: Multiply inside brackets
+            outputRHTML += `
+                <div class="calc-step">
+                    <span class="label">r =</span>
+                    ${createFraction(
+                        `${createBox(n_sumXY)} - ${createBox(sumX_sumY)}`,
+                        `<span class="sqrt-symbol">√</span>[${createBox(n_sumX2)} - ${createBox(sumX_sq)}][${createBox(n_sumY2)} - ${createBox(sumY_sq)}]`
+                    )}
+                </div>`;
+
+            // Step 1.3: Subtraction inside brackets
+            outputRHTML += `
+                <div class="calc-step">
+                    <span class="label">r =</span>
+                    ${createFraction(
+                        `${createBox(numerator)}`,
+                        `<span class="sqrt-symbol">√</span>[${createBox(partX_sub)}][${createBox(partY_sub)}]`
+                    )}
+                </div>`;
+            
+            // Step 1.4: Multiply denominator parts
+            outputRHTML += `
+                <div class="calc-step">
+                    <span class="label">r =</span>
+                    ${createFraction(
+                        `${createBox(numerator)}`,
+                        `<span class="sqrt-symbol">√</span>${createBox(product_parts)}`
+                    )}
+                </div>`;
+
+            // Step 1.5: Menampilkan Pembilang per Penyebut (Akar sudah dihitung)
+            outputRHTML += `
+                <div class="calc-step">
+                    <span class="label">r =</span>
+                    ${createFraction(
+                        `${createBox(numerator)}`,
+                        `${createBox(denominator_r, 4)}`
+                    )}
+                </div>`;
+            
+            // Step 1.6: Final Result
+            outputRHTML += `
+                <div class="calc-step" style="font-size: 1.5em; color: #0056b3;">
+                    <span class="label">r =</span>
+                    ${createBox(r_value, 4)}
+                </div>`;
+            
+            outputRDiv.innerHTML = outputRHTML;
+
+            // ==========================================
+            // STEP 2: T-TEST (DETAILED)
+            // ==========================================
+            
+            let outputTHTML = '<h3>2. Uji Signifikansi Korelasi (Uji t)</h3>';
+            
+            const r = r_value; 
+            const n_minus_2 = n - 2; 
+            const r_squared = r * r; 
+            const one_minus_r_sq = 1 - r_squared; 
+            
+            const sqrt_n_minus_2 = Math.sqrt(n_minus_2);
+            const t_numerator_final = r * sqrt_n_minus_2;
+            const sqrt_one_minus_r_sq = Math.sqrt(one_minus_r_sq);
+            const t_final = t_numerator_final / sqrt_one_minus_r_sq;
+
+            // Step 2.1: Substitution
+            outputTHTML += `
+                <div class="calc-step">
+                    <span class="label">t =</span>
+                    ${createFraction(
+                        `${createBox(r)} <span class="sqrt-symbol">√</span>${createBox(n)} - ${createBox(2)}`,
+                        `<span class="sqrt-symbol">√</span>${createBox(1)} - (${createBox(r)})²`
+                    )}
+                </div>`;
+
+            // Step 2.2: Simplify roots and squares
+            outputTHTML += `
+                <div class="calc-step">
+                    <span class="label">t =</span>
+                    ${createFraction(
+                        `${createBox(r)} <span class="sqrt-symbol">√</span>${createBox(n_minus_2)}`,
+                        `<span class="sqrt-symbol">√</span>${createBox(1)} - ${createBox(r_squared)}`
+                    )}
+                </div>`;
+
+            // Step 2.3: Hitung Akar(n-2) dan Pengurangan Penyebut (REQUESTED STEP)
+            outputTHTML += `
+                <div class="calc-step">
+                    <span class="label">t =</span>
+                    ${createFraction(
+                        `${createBox(r)} × ${createBox(sqrt_n_minus_2)}`,
+                        `<span class="sqrt-symbol">√</span>${createBox(one_minus_r_sq)}`
+                    )}
+                </div>`;
+
+
+            // Step 2.4: Solve Sqrt and subtraction
+            outputTHTML += `
+                <div class="calc-step">
+                    <span class="label">t =</span>
+                    ${createFraction(
+                        `${createBox(t_numerator_final)}`,
+                        `${createBox(sqrt_one_minus_r_sq)}`
+                    )}
+                </div>`;
+            
+            // Step 2.5: Final Result
+            outputTHTML += `
+                <div class="calc-step" style="font-size: 1.5em; color: #0056b3;">
+                    <span class="label">t =</span>
+                    ${createBox(t_final)}
+                </div>`;
+            
+            outputTDiv.innerHTML = outputTHTML;
+
+            // ==========================================
+            // STEP 3: RELIABILITY / SPEARMAN-BROWN (NEW)
+            // ==========================================
+
+            let outputRelHTML = '<h3>3. Uji Reliabilitas (Spearman-Brown)</h3>';
+
+            const rii_numerator = 2 * r_value;
+            const rii_denominator = 1 + r_value;
+            const rii_final = rii_numerator / rii_denominator;
+            
+            // Determine Status
+            let statusText = "TIDAK RELIABEL";
+            let statusColor = "#dc3545"; // Red
+            if (!isNaN(rTabel) && rii_final > rTabel) {
+                statusText = "RELIABEL";
+                statusColor = "#28a745"; // Green
+            }
+
+            // Step 3.1: Substitution
+            outputRelHTML += `
+                <div class="calc-step">
+                    <span class="label">r<sub>ii</sub> =</span>
+                    ${createFraction(
+                        `2 (${createBox(r_value, 4)})`,
+                        `1 + ${createBox(r_value, 4)}`
+                    )}
+                </div>`;
+
+            // Step 3.2: Solve Num/Denom
+            outputRelHTML += `
+                <div class="calc-step">
+                    <span class="label">r<sub>ii</sub> =</span>
+                    ${createFraction(
+                        `${createBox(rii_numerator, 4)}`,
+                        `${createBox(rii_denominator, 4)}`
+                    )}
+                </div>`;
+
+            // Step 3.3: Final Result
+            outputRelHTML += `
+                <div class="calc-step" style="font-size: 1.5em; color: #0056b3;">
+                    <span class="label">r<sub>ii</sub> =</span>
+                    ${createBox(rii_final, 4)}
+                </div>`;
+
+            // Step 3.4: Conclusion Box
+            outputRelHTML += `
+                <div class="reliability-status" style="border-left-color: ${statusColor}">
+                    <strong>Kesimpulan:</strong><br><br>
+                    Diketahui <strong>r<sub>hitung</sub> (${createBox(rii_final, 3)})</strong> 
+                    ${rii_final > rTabel ? '>' : '<'} 
+                    <strong>r<sub>tabel</sub> (${createBox(rTabel)})</strong>.
+                    <br><br>
+                    Maka instrumen dinyatakan: <span class="status-badge" style="background-color: ${statusColor}">${statusText}</span>
+                </div>
+            `;
+
+            outputRelDiv.innerHTML = outputRelHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', hitungKorelasiDanUjiT);
+    </script>
+</body>
+</html>

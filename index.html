@@ -3,175 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pembersih Teks dengan Opsi Pilihan</title>
+    <title>Pembersih Teks Advanced</title>
     <style>
+        /* --- GLOBAL LAYOUT & SIDEBAR CSS --- */
+        :root {
+            --sidebar-width: 250px;
+            --bg-color: #f4f4f9;
+            --sidebar-bg: #282828;
+            --accent: #007bff;
+            --text-light: #fff;
+        }
         body {
+            display: flex;
+            margin: 0;
             font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f4f4f9;
+            background-color: var(--bg-color);
+            min-height: 100vh;
         }
-         #sidebar {
-
-    width: 150px;
-
-    background-color: #282828;
-
-    color: var(--text-main);
-
-    padding: 0px;
-
-    height: 100vh;
-
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
-
-    overflow-x: clip;
-
-  }
-
-
-
-  #sidebar a {
-
-    display: block;
-
-    color: var(--text-main);
-
-    padding: 10px 20px;
-
-    text-decoration: none;
-
-    font-size: 1.1rem;
-
-    border-left: 5px solid transparent;
-
-  }
-
-
-
-  #sidebar a:hover,
-
-  #sidebar a.active {
-
-    background-color: #3e3e3e;
-
-    border-left: 5px solid var(--accent);
-
-  }
-        h1 {
-            color: #333;
+        /* Sidebar Styles */
+        #sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            color: var(--text-light);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
         }
-        p {
-            color: #555;
-        }
-        label {
-            display: block;
-            margin-top: 15px;
+        #sidebar .brand {
+            font-size: 1.2rem;
+            text-align: center;
+            padding: 20px 0;
             font-weight: bold;
+            border-bottom: 1px solid #444;
+            margin-bottom: 10px;
+            color: white;
+            text-decoration: none;
         }
-        textarea, input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+        #sidebar a.nav-link {
+            display: block;
+            color: #ccc;
+            padding: 15px 25px;
+            text-decoration: none;
+            font-size: 1rem;
+            border-left: 5px solid transparent;
+            transition: all 0.3s;
+        }
+        #sidebar a.nav-link:hover,
+        #sidebar a.nav-link.active {
+            background-color: #3e3e3e;
+            color: #fff;
+            border-left: 5px solid var(--accent);
+        }
+        /* Main Content Styles */
+        .main-content {
+            flex-grow: 1;
+            padding: 30px;
+            overflow-y: auto;
+            height: 100vh;
             box-sizing: border-box;
         }
-        textarea {
-            resize: vertical;
+
+        /* --- PAGE SPECIFIC CSS --- */
+        h1 { color: #333; }
+        p { color: #555; }
+        label { display: block; margin-top: 15px; font-weight: bold; }
+        textarea, input[type="text"] {
+            width: 100%; padding: 10px; margin-top: 5px;
+            border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
         }
-        .symbol-inputs {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .symbol-inputs select {
-            padding: 8px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .symbol-inputs span {
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-        .btn-container {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .btn {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        #bersihkanButton {
-            background-color: #007bff;
-            color: white;
-        }
-        #bersihkanButton:hover {
-            background-color: #0056b3;
-        }
-        #copyButton {
-            background-color: #28a745;
-            color: white;
-        }
-        #copyButton:hover {
-            background-color: #218838;
-        }
-        #pasteButton {
-            background-color: #ffc107;
-            color: #212529;
-        }
-        #pasteButton:hover {
-            background-color: #e0a800;
-        }
-        #outputContainer {
-            margin-top: 30px;
-            padding: 15px;
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        textarea { resize: vertical; }
+        .symbol-inputs { display: flex; align-items: center; gap: 10px; }
+        .symbol-inputs select { padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-container { display: flex; gap: 10px; margin-top: 20px; }
+        .btn { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; color: white; }
+        #bersihkanButton { background-color: #007bff; }
+        #bersihkanButton:hover { background-color: #0056b3; }
+        #copyButton { background-color: #28a745; }
+        #copyButton:hover { background-color: #218838; }
+        #pasteButton { background-color: #ffc107; color: #212529; }
+        #pasteButton:hover { background-color: #e0a800; }
+        #outputContainer { margin-top: 30px; padding: 15px; background-color: #fff; border: 1px solid #ddd; border-radius: 4px; }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100%; height: auto; }
+            .main-content { height: auto; }
         }
     </style>
 </head>
 <body>
-<div id="sidebar">
-        <a href="index.html" class="active">Pembersih Teks</a>
-        <a href="PearsonProductMoment.html">Pearson Product Moment</a>
-       <!-- <a href=".html">📝 Update Karakter</a>
-        <a href="backup_recovery.html">💾 Backup/Recovery</a> -->
-</div>
-    <h1>Pembersih Format Teks Kustom</h1>
-    <p>Hapus simbol tertentu yang hanya ada di dalam pasangan simbol indikator yang dipilih.</p>
 
-    <label for="teksInput">1. Masukkan Teks yang Akan Dibersihkan:</label>
-    <textarea id="teksInput" rows="5" placeholder='Contoh: Teks (*lain*) *dan* "*teks*" [*baru*] {dengan simbol *di* dalamnya}.'>Teks (*lain*) dan teks [baru] dengan simbol di dalamnya.</textarea>
-    <button id="pasteButton" class="btn" onclick="pasteTeks()">Tempel Teks</button>
+    <!-- SIDEBAR -->
+    <nav id="sidebar">
+        <div class="brand">My Tools</div>
+        <a href="index.html" class="nav-link active">Advanced Cleaner</a>
+        <a href="TextCleaner.html" class="nav-link">Quote Cleaner</a>
+        <a href="PearsonMomentProductV2.html" class="nav-link">Pearson Calculator</a>
+    </nav>
 
-    <label>2. Tentukan Jenis Simbol Indikator:</label>
-    <div class="symbol-inputs">
-        <select id="simbolPilihan">
-            <option value='"' selected>""</option>
-            <option value="()">()</option>
-            <option value="[]">[]</option>
-            <option value="{}">{}</option>
-            <option value="&lt;&gt;">&lt;&gt;</option>
-        </select>
-    </div>
+    <!-- CONTENT -->
+    <div class="main-content">
+        <h1>Pembersih Format Teks Kustom</h1>
+        <p>Hapus simbol tertentu yang hanya ada di dalam pasangan simbol indikator yang dipilih.</p>
 
-    <label for="simbolHapus">3. Simbol yang Ingin Dihilangkan:</label>
-    <input type="text" id="simbolHapus" value="*" maxlength="5">
+        <label for="teksInput">1. Masukkan Teks yang Akan Dibersihkan:</label>
+        <textarea id="teksInput" rows="5" placeholder='Contoh: Teks (*lain*) *dan* "*teks*" [*baru*] {dengan simbol *di* dalamnya}.'>Teks (*lain*) dan teks [baru] dengan simbol di dalamnya.</textarea>
+        <button id="pasteButton" class="btn" onclick="pasteTeks()">Tempel Teks</button>
 
-    <div class="btn-container">
-        <button id="bersihkanButton" class="btn" onclick="bersihkanTeks()">4. Bersihkan Teks</button>
-    </div>
+        <label>2. Tentukan Jenis Simbol Indikator:</label>
+        <div class="symbol-inputs">
+            <select id="simbolPilihan">
+                <option value='"' selected>""</option>
+                <option value="()">()</option>
+                <option value="[]">[]</option>
+                <option value="{}">{}</option>
+                <option value="&lt;&gt;">&lt;&gt;</option>
+            </select>
+        </div>
 
-    <div id="outputContainer">
-        <h2>Hasil Teks Bersih:</h2>
-        <textarea id="teksOutput" rows="5" readonly></textarea>
-        <button id="copyButton" class="btn" onclick="copyTeks()">Salin Teks</button>
+        <label for="simbolHapus">3. Simbol yang Ingin Dihilangkan:</label>
+        <input type="text" id="simbolHapus" value="*" maxlength="5">
+
+        <div class="btn-container">
+            <button id="bersihkanButton" class="btn" onclick="bersihkanTeks()">4. Bersihkan Teks</button>
+        </div>
+
+        <div id="outputContainer">
+            <h2>Hasil Teks Bersih:</h2>
+            <textarea id="teksOutput" rows="5" readonly></textarea>
+            <button id="copyButton" class="btn" onclick="copyTeks()">Salin Teks</button>
+        </div>
     </div>
 
     <script>
@@ -191,10 +154,8 @@
                 return;
             }
 
-            // Ambil simbol pembuka dan penutup dari nilai `<select>`
             const simbolPembuka = simbolPilihan.charAt(0);
             const simbolPenutup = simbolPilihan.slice(-1);
-
             const escapedPembuka = escapeRegExp(simbolPembuka);
             const escapedPenutup = escapeRegExp(simbolPenutup);
             const escapedSimbolHapus = escapeRegExp(simbolHapus);
@@ -203,8 +164,7 @@
 
             teksHasil = teksAwal.replace(regexKustom, (match) => {
                 const regexSimbolHapus = new RegExp(escapedSimbolHapus, 'g');
-                const cleanedMatch = match.replace(regexSimbolHapus, '');
-                return cleanedMatch;
+                return match.replace(regexSimbolHapus, '');
             });
 
             document.getElementById('teksOutput').value = teksHasil;
@@ -224,12 +184,10 @@
                 teksInput.value = pastedText;
                 bersihkanTeks();
             } catch (err) {
-                alert("Gagal menempelkan teks. Pastikan Anda memberikan izin akses clipboard pada browser.");
+                alert("Gagal menempelkan teks. Beri izin clipboard.");
             }
         }
-
         document.addEventListener('DOMContentLoaded', bersihkanTeks);
     </script>
-
 </body>
 </html>
