@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pearson Product Moment Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client"
+  }
+}
+</script>
+</head>
+  <body class="bg-gray-100">
+    <div id="root"></div>
+    <script type="module">
+      import React, { useState, useCallback, useEffect } from 'react';
+      import ReactDOM from 'react-dom/client';
+
+      // --- START OF TYPES ---
+      // --- END OF TYPES ---
+
+      // --- START OF ResultsDisplay.tsx ---
+      const Fraction = ({ numerator, denominator }) => (
+          <div className="inline-flex flex-col items-center align-middle mx-2">
+              <span className="px-2">{numerator}</span>
+              <span className="w-full border-t border-gray-700 my-1"></span>
+              <span className="px-2">{denominator}</span>
+          </div>
+      );
+
+      const Sqrt = ({ children }) => (
+          <span className="inline-flex items-center">
+              <span className="text-2xl font-semibold mr-1">√</span>
+              <span className="border-t border-gray-700 px-1">{children}</span>
+          </span>
+      );
+
+      const CalcStep = ({ label, children }) => (
+          <div className="flex items-center mb-6 text-base md:text-lg text-gray-700 flex-wrap">
+              <span className="font-bold mr-2">{label} =</span>
+              <div className="flex items-center flex-wrap">{children}</div>
+          </div>
+      );
+
+      const ConclusionBox = ({isSuccess, successText, failText, comparison}) => {
+          const colorClass = isSuccess ? 'green' : 'red';
+          return (
+              <div className={`mt-6 p-4 border-l-4 rounded-r-md bg-${colorClass}-50 border-${colorClass}-500`}>
+                  <strong className={`text-lg text-${colorClass}-800`}>Kesimpulan:</strong>
+                  <div className="mt-2 text-gray-700">
+                      {comparison}
+                      <div className="mt-3">
+                          Maka instrumen dinyatakan:
+                          <span className={`ml-2 font-bold text-white px-3 py-1 rounded-full text-sm bg-${colorClass}-500`}>
+                              {isSuccess ? successText : failText}
+                          </span>
+                      </div>
+                  </div>
+              </div>
+          );
+      }
+
+      const ResultsDisplay = ({ results, inputs, useRounding }) => {
+        const { r_value, t_final, rii_final, isTValid, isReliable, kp_value, a_value, b_value } = results;
+        const { sumX, sumY, sumX2, sumY2, sumXY, n, rTabel, tTabel } = inputs;
+
+        const formatNum = (num, decimals = 3) => {
+          if (Math.abs(num) === Infinity) return '∞';
+          if (num % 1 === 0 && useRounding) { // It's an integer
+            return num.toString();
+          }
+          if (!useRounding) {
+              return num.toString();
+          }
+          return num.toLocaleString('en-US', {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: decimals,
+              useGrouping: false,
+          });
+        };
+        
+        const ResultBox = ({ value, small }) => (
+          <span className={`font-mono ${small ? 'text-xs' : 'text-sm'} text-blue-800 bg-blue-50 rounded-md py-0.5 px-2 mx-1 whitespace-nowrap`}>
+            {typeof value === 'number' ? formatNum(value) : value}
+          </span>
+        );
+
+        const FinalResult = ({ label, value }) => (
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <span className="text-xl md:text-2xl font-bold text-blue-700">{label} = <ResultBox value={formatNum(value, 4)} /></span>
+          </div>
+        );
+
+        return (
+          <div className="mt-10 space-y-12">
+            {/* Pearson Correlation */}
+            <section>
+              <h3 className="text-2xl font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-6">1. Perhitungan Korelasi Pearson (r)</h3>
+              <CalcStep label="r">
+                  <Fraction 
+                      numerator={<>{`(${n})(${sumXY})`} - {`(${sumX})(${sumY})`}</>} 
+                      denominator={<><Sqrt>{`[(${n})(${sumX2}) - (${sumX})²][(${n})(${sumY2}) - (${sumY})²]`}</Sqrt></>} 
+                  />
+              </CalcStep>
+              <CalcStep label="r">
+                  <Fraction
+                      numerator={<><ResultBox value={results.n_sumXY} /> - <ResultBox value={results.sumX_sumY} /></>}
+                      denominator={<><Sqrt>{`[ `}<ResultBox value={results.n_sumX2} /> - <ResultBox value={results.sumX_sq} />{` ][ `}<ResultBox value={results.n_sumY2} /> - <ResultBox value={results.sumY_sq} />{` ]`}</Sqrt></>}
+                  />
+              </CalcStep>
+              <CalcStep label="r">
+                  <Fraction
+                      numerator={<ResultBox value={results.numerator_r} />}
+                      denominator={<><Sqrt>{`[ `}<ResultBox value={results.partX_sub} />{` ][ `}<ResultBox value={results.partY_sub} />{` ]`}</Sqrt></>}
+                  />
+              </CalcStep>
+              <CalcStep label="r">
+                  <Fraction
+                      numerator={<ResultBox value={results.numerator_r} />}
+                      denominator={<><Sqrt><ResultBox value={results.product_parts} /></Sqrt></>}
+                  />
+              </CalcStep>
+              <CalcStep label="r">
+                  <Fraction
+                      numerator={<ResultBox value={results.numerator_r} />}
+                      denominator={<ResultBox value={results.denominator_r} />}
+                  />
+              </CalcStep>
+              <FinalResult label="r" value={r_value} />
+            </section>
+
+            {/* T-Test */}
+            <section>
+              <h3 className="text-2xl font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-6">2. Uji Signifikansi Korelasi (Uji t)</h3>
+              <CalcStep label="t">
+                  <Fraction
+                      numerator={<><ResultBox value={formatNum(r_value)} /><Sqrt>{`${n} - 2`}</Sqrt></>}
+                      denominator={<><Sqrt>{`1 - (${formatNum(r_value)})²`}</Sqrt></>}
+                  />
+              </CalcStep>
+              <CalcStep label="t">
+                  <Fraction
+                      numerator={<><ResultBox value={formatNum(r_value)} /><Sqrt><ResultBox value={results.n_minus_2}/></Sqrt></>}
+                      denominator={<><Sqrt>{`1 - `}<ResultBox value={results.r_squared}/></Sqrt></>}
+                  />
+              </CalcStep>
+              <CalcStep label="t">
+                  <Fraction
+                      numerator={<><ResultBox value={formatNum(r_value)} /> × <ResultBox value={results.sqrt_n_minus_2}/></>}
+                      denominator={<><Sqrt><ResultBox value={results.one_minus_r_sq}/></Sqrt></>}
+                  />
+              </CalcStep>
+              <CalcStep label="t">
+                  <Fraction
+                      numerator={<ResultBox value={results.t_numerator_final} />}
+                      denominator={<ResultBox value={results.sqrt_one_minus_r_sq} />}
+                  />
+              </CalcStep>
+              <FinalResult label="t" value={t_final} />
+              <ConclusionBox 
+                  isSuccess={isTValid}
+                  successText="VALID"
+                  failText="TIDAK VALID"
+                  comparison={<>Diketahui <strong>t<sub>hitung</sub> (<ResultBox value={Math.abs(t_final)} />)</strong> {Math.abs(t_final) > parseFloat(tTabel) ? '>' : '<'} <strong>t<sub>tabel</sub> (<ResultBox value={tTabel} />)</strong>.</>}
+              />
+            </section>
+
+            {/* Reliability */}
+            <section>
+              <h3 className="text-2xl font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-6">3. Uji Reliabilitas (Spearman-Brown)</h3>
+              <CalcStep label="rᵢᵢ">
+                  <Fraction
+                      numerator={<>2 (<ResultBox value={formatNum(r_value)} />)</>}
+                      denominator={<>1 + <ResultBox value={formatNum(r_value)} /></>}
+                  />
+              </CalcStep>
+              <CalcStep label="rᵢᵢ">
+                  <Fraction
+                      numerator={<ResultBox value={results.rii_numerator} />}
+                      denominator={<ResultBox value={results.rii_denominator} />}
+                  />
+              </CalcStep>
+              <FinalResult label="rᵢᵢ" value={rii_final} />
+              <ConclusionBox 
+                  isSuccess={isReliable}
+                  successText="RELIABEL"
+                  failText="TIDAK RELIABEL"
+                  comparison={<>Diketahui <strong>r<sub>hitung</sub> (<ResultBox value={rii_final} />)</strong> {rii_final > parseFloat(rTabel) ? '>' : '<'} <strong>r<sub>tabel</sub> (<ResultBox value={rTabel} />)</strong>.</>}
+              />
+            </section>
+
+            {/* Contribution Test */}
+            <section>
+              <h3 className="text-2xl font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-6">4. Uji Kontribusi (Kp)</h3>
+              <CalcStep label="Kp">
+                <>r² × 100%</>
+              </CalcStep>
+              <CalcStep label="Kp">
+                <>
+                  (<ResultBox value={formatNum(r_value, 4)} />)² × 100%
+                </>
+              </CalcStep>
+              <CalcStep label="Kp">
+                <>
+                  <ResultBox value={formatNum(results.r_squared, 4)} /> × 100%
+                </>
+              </CalcStep>
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <span className="text-xl md:text-2xl font-bold text-blue-700">
+                      Kp = <ResultBox value={formatNum(kp_value, 2)} />%
+                  </span>
+              </div>
+              <div className="mt-6 p-4 border-l-4 rounded-r-md bg-indigo-50 border-indigo-500">
+                  <strong className="text-lg text-indigo-800">Interpretasi:</strong>
+                  <p className="mt-2 text-gray-700">
+                      Variabel X memberikan kontribusi sebesar <strong className="text-indigo-700">{formatNum(kp_value, 2)}%</strong> terhadap Variabel Y, sedangkan sisanya sebesar <strong className="text-indigo-700">{formatNum(100 - kp_value, 2)}%</strong> dipengaruhi oleh faktor-faktor lain di luar model ini.
+                  </p>
+              </div>
+            </section>
+
+            {/* Regression Analysis */}
+            <section>
+              <h3 className="text-2xl font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-6">5. Analisis Regresi Linier Sederhana</h3>
+              <h4 className="text-xl font-semibold text-gray-700 mb-4">Mencari nilai b:</h4>
+              <CalcStep label="b">
+                  <Fraction 
+                      numerator={<>{`n(ΣXY) - (ΣX)(ΣY)`}</>} 
+                      denominator={<>{`n(ΣX²) - (ΣX)²`}</>} 
+                  />
+              </CalcStep>
+               <CalcStep label="b">
+                  <Fraction 
+                      numerator={<><ResultBox value={n} />(<ResultBox value={sumXY} />) - <ResultBox value={sumX} />(<ResultBox value={sumY} />)</>} 
+                      denominator={<><ResultBox value={n} />(<ResultBox value={sumX2} />) - (<ResultBox value={sumX} />)²</>} 
+                  />
+              </CalcStep>
+              <CalcStep label="b">
+                  <Fraction 
+                      numerator={<><ResultBox value={results.n_sumXY} /> - <ResultBox value={results.sumX_sumY} /></>} 
+                      denominator={<><ResultBox value={results.n_sumX2} /> - <ResultBox value={results.sumX_sq} /></>} 
+                  />
+              </CalcStep>
+              <CalcStep label="b">
+                  <Fraction
+                      numerator={<ResultBox value={results.numerator_r} />}
+                      denominator={<ResultBox value={results.partX_sub} />}
+                  />
+              </CalcStep>
+              <FinalResult label="b" value={b_value} />
+
+              <h4 className="text-xl font-semibold text-gray-700 mt-10 mb-4">Mencari nilai a:</h4>
+              <CalcStep label="a">
+                  <Fraction 
+                      numerator={<>{`ΣY - b(ΣX)`}</>} 
+                      denominator={<>{`n`}</>} 
+                  />
+              </CalcStep>
+              <CalcStep label="a">
+                  <Fraction
+                      numerator={<><ResultBox value={sumY} /> - <ResultBox value={formatNum(b_value, 4)} />(<ResultBox value={sumX} />)</>}
+                      denominator={<ResultBox value={n} />}
+                  />
+              </CalcStep>
+              <CalcStep label="a">
+                  <Fraction
+                      numerator={<><ResultBox value={sumY} /> - <ResultBox value={formatNum(results.b_times_sumX, 4)} /></>}
+                      denominator={<ResultBox value={n} />}
+                  />
+              </CalcStep>
+              <CalcStep label="a">
+                  <Fraction
+                      numerator={<ResultBox value={results.a_numerator} />}
+                      denominator={<ResultBox value={n} />}
+                  />
+              </CalcStep>
+              <FinalResult label="a" value={a_value} />
+
+              <div className="mt-8 p-4 bg-gray-800 text-white rounded-lg text-center">
+                  <p className="text-lg font-semibold tracking-wide">Persamaan Regresi:</p>
+                  <p className="text-3xl font-bold font-mono mt-2">
+                      Ŷ = {formatNum(a_value, 4)} {b_value >= 0 ? '+' : '-'} {formatNum(Math.abs(b_value), 4)}X
+                  </p>
+              </div>
+              <div className="mt-6 p-4 border-l-4 rounded-r-md bg-purple-50 border-purple-500">
+                  <strong className="text-lg text-purple-800">Interpretasi:</strong>
+                  <ul className="mt-2 text-gray-700 list-disc list-inside space-y-2">
+                      <li>Konstanta (a) sebesar <strong className="text-purple-700">{formatNum(a_value, 2)}</strong> menyatakan bahwa jika tidak ada nilai dari variabel X, maka nilai variabel Y adalah sebesar <strong className="text-purple-700">{formatNum(a_value, 2)}</strong>.</li>
+                      <li>
+                          Koefisien regresi (b) sebesar <strong className="text-purple-700">{formatNum(b_value, 2)}</strong> menyatakan bahwa setiap penambahan 1 nilai pada variabel X, akan memberikan <strong className={`font-bold ${b_value >= 0 ? 'text-green-600' : 'text-red-600'}`}>{b_value >= 0 ? 'Peningkatan' : 'Penurunan'}</strong> sebesar <strong className="text-purple-700">{formatNum(Math.abs(b_value), 2)}</strong> pada variabel Y.
+                      </li>
+                  </ul>
+              </div>
+            </section>
+          </div>
+        );
+      };
+      // --- END OF ResultsDisplay.tsx ---
+
+
+      // --- START OF Calculator.tsx ---
+      const initialInputs = {
+        sumX: '36',
+        sumY: '192',
+        sumX2: '138',
+        sumY2: '3762',
+        sumXY: '705',
+        n: '10',
+        rTabel: '0.707',
+        tTabel: '2.306',
+      };
+
+      const inputLabels = [
+          { key: 'sumX', label: 'ΣX' },
+          { key: 'sumY', label: 'ΣY' },
+          { key: 'sumX2', label: 'ΣX²' },
+          { key: 'sumY2', label: 'ΣY²' },
+          { key: 'sumXY', label: 'ΣXY' },
+          { key: 'n', label: 'n' },
+          { key: 'rTabel', label: 'r Tabel' },
+          { key: 'tTabel', label: 't Tabel' },
+      ];
+
+      const Calculator = () => {
+        const [inputs, setInputs] = useState(initialInputs);
+        const [results, setResults] = useState(null);
+        const [error, setError] = useState('');
+        const [useRounding, setUseRounding] = useState(true);
+
+        const handleInputChange = (e) => {
+          const { name, value } = e.target;
+          setInputs(prev => ({ ...prev, [name]: value }));
+        };
+
+        const calculateResults = useCallback(() => {
+          const values = Object.fromEntries(
+              Object.entries(inputs).map(([key, value]) => [key, parseFloat(value)])
+          );
+          
+          if (Object.values(values).some(isNaN)) {
+              setError('Harap isi semua input dengan angka yang valid.');
+              setResults(null);
+              return;
+          }
+          setError('');
+
+          const { n, sumX, sumY, sumX2, sumY2, sumXY, rTabel, tTabel } = values;
+
+          // Pearson Correlation (r)
+          const n_sumXY = n * sumXY;
+          const sumX_sumY = sumX * sumY;
+          const numerator_r = n_sumXY - sumX_sumY;
+          const n_sumX2 = n * sumX2;
+          const sumX_sq = sumX * sumX;
+          const partX_sub = n_sumX2 - sumX_sq;
+          const n_sumY2 = n * sumY2;
+          const sumY_sq = sumY * sumY;
+          const partY_sub = n_sumY2 - sumY_sq;
+          const product_parts = partX_sub * partY_sub;
+          const denominator_r = Math.sqrt(product_parts);
+          const r_value = denominator_r === 0 ? 0 : numerator_r / denominator_r;
+
+          // T-Test (Uji t)
+          const r_squared = r_value * r_value;
+          const n_minus_2 = n - 2;
+          const one_minus_r_sq = 1 - r_squared;
+          const sqrt_n_minus_2 = Math.sqrt(Math.max(0, n_minus_2));
+          const t_numerator_final = r_value * sqrt_n_minus_2;
+          const sqrt_one_minus_r_sq = Math.sqrt(Math.max(0, one_minus_r_sq));
+          const t_final = sqrt_one_minus_r_sq === 0 ? Infinity : t_numerator_final / sqrt_one_minus_r_sq;
+          const isTValid = Math.abs(t_final) > tTabel;
+
+          // Reliability (Spearman-Brown)
+          const rii_numerator = 2 * r_value;
+          const rii_denominator = 1 + r_value;
+          const rii_final = rii_denominator === 0 ? 0 : rii_numerator / rii_denominator;
+          const isReliable = rii_final > rTabel;
+
+          // Contribution Test (Kp)
+          const kp_value = r_squared * 100;
+
+          // Regression Analysis (a and b)
+          const b_value = partX_sub === 0 ? 0 : numerator_r / partX_sub;
+          const b_times_sumX = b_value * sumX;
+          const a_numerator = sumY - b_times_sumX;
+          const a_value = n === 0 ? 0 : a_numerator / n;
+
+          setResults({
+              n_sumXY, sumX_sumY, numerator_r, n_sumX2, sumX_sq, partX_sub, n_sumY2,
+              sumY_sq, partY_sub, product_parts, denominator_r, r_value, r_squared,
+              n_minus_2, one_minus_r_sq, sqrt_n_minus_2, t_numerator_final,
+              sqrt_one_minus_r_sq, t_final, isTValid, rii_numerator, rii_denominator,
+              rii_final, isReliable, kp_value, b_value, a_numerator, a_value, b_times_sumX
+          });
+        }, [inputs]);
+        
+        useEffect(() => {
+          calculateResults();
+        }, []);
+
+
+        return (
+          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg w-full">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Kalkulator Ilmiah</h1>
+            <p className="text-gray-500 mb-8">Korelasi Pearson, Uji t & Reliabilitas</p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-x-8 gap-y-4 mb-6">
+              {inputLabels.map(({key, label}) => (
+                  <div key={key}>
+                      <label htmlFor={key} className="block text-sm font-bold text-gray-600 mb-1 ml-1">{label}</label>
+                      <input
+                          type="text"
+                          id={key}
+                          name={key}
+                          value={inputs[key]}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 text-center text-gray-700 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                      />
+                  </div>
+              ))}
+            </div>
+
+            <div className="flex items-center my-6">
+              <label htmlFor="rounding-toggle" className="flex items-center cursor-pointer">
+                <div className="relative">
+                  <input 
+                    type="checkbox" 
+                    id="rounding-toggle" 
+                    className="sr-only peer" 
+                    checked={useRounding} 
+                    onChange={(e) => setUseRounding(e.target.checked)} 
+                  />
+                  <div className="block w-14 h-8 bg-gray-200 rounded-full peer-checked:bg-blue-500 transition"></div>
+                  <div className="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform transform peer-checked:translate-x-full"></div>
+                </div>
+                <div className="ml-3 text-gray-700 font-medium text-sm">
+                  Gunakan pembulatan angka desimal
+                </div>
+              </label>
+            </div>
+             
+             <button onClick={calculateResults} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Hitung Semua Langkah
+              </button>
+              {error && <p className="text-red-500 mt-4">{error}</p>}
+            
+            {results && <ResultsDisplay results={results} inputs={inputs} useRounding={useRounding} />}
+          </div>
+        );
+      };
+      // --- END OF Calculator.tsx ---
+      
+      
+      // --- START OF Sidebar.tsx ---
+      const NavLink = ({ href, children, isActive }) => {
+        const activeClasses = "bg-blue-600 text-white border-blue-400";
+        const inactiveClasses = "text-gray-300 border-transparent hover:bg-gray-700 hover:text-white";
+        return (
+          <a
+            href={href}
+            className={`block px-6 py-3 text-sm font-medium border-l-4 transition-colors duration-200 ${isActive ? activeClasses : inactiveClasses}`}
+          >
+            {children}
+          </a>
+        );
+      };
+
+      const Sidebar = () => {
+        return (
+          <nav className="w-full md:w-64 bg-gray-800 text-white flex-shrink-0">
+            <div className="px-6 py-5 text-2xl font-bold border-b border-gray-700">
+              My Tools
+            </div>
+            <div>
+              <NavLink href="#advanced-cleaner">Advanced Cleaner</NavLink>
+              <NavLink href="#quote-cleaner">Quote Cleaner</NavLink>
+              <NavLink href="#pearson-calculator" isActive={true}>Pearson Calculator</NavLink>
+            </div>
+          </nav>
+        );
+      };
+      // --- END OF Sidebar.tsx ---
+
+      // --- START OF App.tsx ---
+      const App = () => {
+        return (
+          <div className="flex flex-col md:flex-row min-h-screen bg-gray-100 font-sans">
+            <Sidebar />
+            <main className="flex-grow p-4 sm:p-6 md:p-10">
+              <Calculator />
+            </main>
+          </div>
+        );
+      };
+      // --- END OF App.tsx ---
+
+
+      // --- START OF index.tsx ---
+      const rootElement = document.getElementById('root');
+      if (!rootElement) {
+        throw new Error("Could not find root element to mount to");
+      }
+
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>
+      );
+      // --- END OF index.tsx ---
+    </script>
+  </body>
+</html>
