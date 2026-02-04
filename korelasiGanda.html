@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Korelasi Ganda (X1, X2, Y)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* CSS Khusus untuk Menulis Rumus Matematika tanpa MathJax */
+        .math-container {
+            font-family: 'Times New Roman', Times, serif;
+            display: inline-flex;
+            align-items: center;
+            font-size: 1.1rem;
+            flex-wrap: wrap;
+        }
+        .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 0.4rem;
+            vertical-align: middle;
+        }
+        .numerator {
+            border-bottom: 2px solid black;
+            padding: 0 4px;
+            text-align: center;
+            display: block;
+            width: 100%;
+        }
+        .denominator {
+            padding: 0 4px;
+            text-align: center;
+            display: block;
+            width: 100%;
+        }
+        .sqrt-wrapper {
+            display: inline-flex;
+            align-items: stretch;
+        }
+        .sqrt-symbol {
+            font-size: 1.4em;
+            line-height: 1;
+            transform: scaleY(1.2);
+        }
+        .sqrt-content {
+            border-top: 2px solid black;
+            padding-top: 2px;
+            margin-top: 0.25em;
+        }
+        /* Kotak hasil angka */
+        .val-box {
+            background-color: #f0fdf4;
+            border: 1px solid #86efac;
+            color: #166534;
+            padding: 0 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-weight: bold;
+            margin: 0 2px;
+        }
+        /* Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #3b82f6;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 pb-20">
+
+<div class="max-w-6xl mx-auto p-4 md:p-8">
+    
+    <div class="bg-white p-6 rounded-xl shadow-md mb-6 border-l-8 border-blue-600">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Kalkulator Korelasi Ganda</h1>
+        <p class="text-gray-600 mt-2">Menghitung hubungan bersama-sama antara dua variabel bebas ($X_1, X_2$) dengan satu variabel terikat ($Y$).</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <div class="lg:col-span-5 space-y-4">
+            
+            <div class="bg-white p-5 rounded-xl shadow-md">
+                <h3 class="font-bold text-gray-700 border-b pb-2 mb-4">1. Pengaturan & Parameter</h3>
+                
+                <div class="flex items-center justify-between mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                    <span class="text-sm font-semibold text-blue-800">Mode Pembulatan (Desimal)</span>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle" id="roundingToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300 left-0 transition-all duration-300" checked/>
+                        <label for="roundingToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mb-4 italic">
+                    *ON (Biru): Angka dibulatkan 4 digit (seperti buku/tulisan tangan). <br>
+                    *OFF (Abu): Menggunakan angka desimal penuh (lebih presisi).
+                </p>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">F Tabel</label>
+                        <input type="number" id="fTabel" value="4.74" step="0.01" class="w-full border-2 border-gray-300 rounded p-2 text-center font-bold text-gray-700 focus:border-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Alpha (α)</label>
+                        <input type="text" value="0.05" readonly class="w-full bg-gray-100 border border-gray-200 rounded p-2 text-center text-gray-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Jumlah Sampel (n)</label>
+                        <input type="text" id="display-n" readonly class="w-full bg-gray-100 border border-gray-200 rounded p-2 text-center font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">dk (n-k-1)</label>
+                        <input type="text" id="display-dk" readonly class="w-full bg-gray-100 border border-gray-200 rounded p-2 text-center font-bold">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-md">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-bold text-gray-700">2. Input Data (X1, X2, Y)</h3>
+                    <div class="text-xs space-x-1">
+                        <button onclick="addRow()" class="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700">+ Baris</button>
+                        <button onclick="resetData()" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Reset</button>
+                    </div>
+                </div>
+                
+                <div class="overflow-y-auto max-h-[400px] border rounded-lg">
+                    <table class="w-full text-sm text-center">
+                        <thead class="bg-gray-100 text-gray-700 font-bold sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th class="py-2 w-10">No</th>
+                                <th class="py-2">X1</th>
+                                <th class="py-2">X2</th>
+                                <th class="py-2">Y</th>
+                                <th class="py-2 w-10"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="input-body" class="bg-white divide-y divide-gray-100">
+                            </tbody>
+                    </table>
+                </div>
+                <button onclick="calculate()" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 shadow-lg transform active:scale-95 transition">
+                    Hitung Korelasi Ganda & Uji F
+                </button>
+            </div>
+        </div>
+
+        <div class="lg:col-span-7 space-y-6">
+            
+            <div id="result-helper" class="bg-white p-5 rounded-xl shadow-md hidden">
+                <h3 class="font-bold text-gray-800 border-b pb-2 mb-4">Tabel Penolong (Helper Table)</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-center border-collapse border border-gray-300">
+                        <thead class="bg-gray-50 font-bold text-gray-700">
+                            <tr>
+                                <th class="border p-1">No</th>
+                                <th class="border p-1">X1</th>
+                                <th class="border p-1">X2</th>
+                                <th class="border p-1">Y</th>
+                                <th class="border p-1 bg-blue-50">X1²</th>
+                                <th class="border p-1 bg-blue-50">X2²</th>
+                                <th class="border p-1 bg-blue-50">Y²</th>
+                                <th class="border p-1 bg-orange-50">X1.Y</th>
+                                <th class="border p-1 bg-orange-50">X2.Y</th>
+                                <th class="border p-1 bg-orange-50">X1.X2</th>
+                            </tr>
+                        </thead>
+                        <tbody id="helper-body"></tbody>
+                        <tfoot id="helper-footer" class="bg-gray-100 font-bold border-t-2 border-gray-400"></tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div id="result-steps" class="space-y-6 hidden">
+                
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Langkah 1: Hitung Korelasi Pearson (r)</h3>
+                    <div id="pearson-output" class="space-y-8"></div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Langkah 2: Diketahui (Kuadrat Korelasi)</h3>
+                    <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <p class="mb-2 text-gray-700 font-semibold">Mempersiapkan nilai kuadrat ($r^2$) untuk rumus Korelasi Ganda:</p>
+                        <div id="squared-values" class="space-y-3 font-mono text-lg ml-4">
+                            </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Langkah 3: Rumus Korelasi Ganda ($R$)</h3>
+                    <div id="multiple-output" class="overflow-x-auto pb-2"></div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Langkah 4: Uji Signifikansi (Uji F)</h3>
+                    <div id="f-test-output"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Initial Data (Sesuai Tulisan Tangan "KorelasiGanda_Step1.jpg") ---
+    let data = [
+        {x1: 35, x2: 37, y: 36},
+        {x1: 45, x2: 53, y: 60},
+        {x1: 47, x2: 52, y: 55},
+        {x1: 52, x2: 55, y: 49},
+        {x1: 58, x2: 57, y: 52},
+        {x1: 58, x2: 60, y: 57},
+        {x1: 60, x2: 58, y: 55},
+        {x1: 38, x2: 42, y: 40},
+        {x1: 42, x2: 41, y: 38},
+        {x1: 53, x2: 57, y: 56}
+    ];
+
+    // --- DOM Elements ---
+    const inputBody = document.getElementById('input-body');
+    const displayN = document.getElementById('display-n');
+    const displayDk = document.getElementById('display-dk');
+    const fTabelInput = document.getElementById('fTabel');
+    const roundingToggle = document.getElementById('roundingToggle');
+
+    // --- Initialization ---
+    function init() {
+        renderTable();
+        calculate(); // Hitung awal agar tampilan langsung muncul
+    }
+
+    // --- Table Management ---
+    function renderTable() {
+        inputBody.innerHTML = '';
+        data.forEach((row, i) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="text-gray-400 text-xs">${i + 1}</td>
+                <td><input type="number" class="w-full text-center border p-1 rounded focus:ring-1 focus:ring-blue-500 outline-none" value="${row.x1}" onchange="updateRow(${i}, 'x1', this.value)"></td>
+                <td><input type="number" class="w-full text-center border p-1 rounded focus:ring-1 focus:ring-blue-500 outline-none" value="${row.x2}" onchange="updateRow(${i}, 'x2', this.value)"></td>
+                <td><input type="number" class="w-full text-center border p-1 rounded focus:ring-1 focus:ring-blue-500 outline-none" value="${row.y}" onchange="updateRow(${i}, 'y', this.value)"></td>
+                <td><button onclick="removeRow(${i})" class="text-red-400 hover:text-red-600 font-bold text-lg">×</button></td>
+            `;
+            inputBody.appendChild(tr);
+        });
+        updateMeta();
+    }
+
+    function addRow() {
+        data.push({x1: 0, x2: 0, y: 0});
+        renderTable();
+    }
+
+    function removeRow(index) {
+        if(data.length <= 3) return alert("Minimal 3 data sampel diperlukan.");
+        data.splice(index, 1);
+        renderTable();
+    }
+
+    function updateRow(index, key, val) {
+        data[index][key] = parseFloat(val) || 0;
+    }
+
+    function updateMeta() {
+        const n = data.length;
+        const k = 2; // Jumlah variabel bebas
+        displayN.value = n;
+        displayDk.value = n - k - 1;
+    }
+
+    function resetData() {
+        if(confirm("Reset semua data menjadi kosong?")) {
+            data = [{x1:0,x2:0,y:0}, {x1:0,x2:0,y:0}, {x1:0,x2:0,y:0}];
+            renderTable();
+        }
+    }
+
+    // --- Math & Formatting Helpers ---
+    
+    // Fungsi format angka: Jika toggle ON -> 4 desimal (string). Jika OFF -> 8 desimal/asli.
+    function fmt(num, overrideDecimals = null) {
+        const isRounded = roundingToggle.checked;
+        if (num === undefined || isNaN(num)) return "0";
+        
+        if (isRounded) {
+            // Mode Buku (Sesuai Gambar)
+            let d = overrideDecimals !== null ? overrideDecimals : 4;
+            return parseFloat(num).toFixed(d).replace(/\.0000$/, '');
+        } else {
+            // Mode Presisi Tinggi
+            if (Number.isInteger(num)) return num.toString();
+            return parseFloat(num.toFixed(10)).toString(); // Max 10 desimal, buang nol belakang
+        }
+    }
+
+    // Fungsi untuk HTML Pecahan
+    function frac(top, bot) {
+        return `<div class="fraction"><span class="numerator">${top}</span><span class="denominator">${bot}</span></div>`;
+    }
+
+    // Fungsi untuk HTML Akar
+    function sqrt(content) {
+        return `<div class="sqrt-wrapper"><span class="sqrt-symbol">√</span><div class="sqrt-content">${content}</div></div>`;
+    }
+
+    // Fungsi untuk HTML Kotak Nilai
+    function box(val) {
+        return `<span class="val-box">${val}</span>`;
+    }
+
+    // --- Main Calculation Logic ---
+    function calculate() {
+        const n = data.length;
+        const k = 2;
+        const fTabel = parseFloat(fTabelInput.value);
+
+        // 1. Helper Stats
+        let sX1=0, sX2=0, sY=0;
+        let sX1sq=0, sX2sq=0, sYsq=0;
+        let sX1Y=0, sX2Y=0, sX1X2=0;
+
+        let helperHTML = '';
+        
+        data.forEach((r, i) => {
+            let x1sq = r.x1**2;
+            let x2sq = r.x2**2;
+            let ysq = r.y**2;
+            let x1y = r.x1 * r.y;
+            let x2y = r.x2 * r.y;
+            let x1x2 = r.x1 * r.x2;
+
+            sX1+=r.x1; sX2+=r.x2; sY+=r.y;
+            sX1sq+=x1sq; sX2sq+=x2sq; sYsq+=ysq;
+            sX1Y+=x1y; sX2Y+=x2y; sX1X2+=x1x2;
+
+            helperHTML += `
+                <tr class="hover:bg-gray-50 border-b">
+                    <td class="border p-1 text-gray-500">${i+1}</td>
+                    <td class="border p-1">${r.x1}</td>
+                    <td class="border p-1">${r.x2}</td>
+                    <td class="border p-1">${r.y}</td>
+                    <td class="border p-1 text-gray-500">${x1sq}</td>
+                    <td class="border p-1 text-gray-500">${x2sq}</td>
+                    <td class="border p-1 text-gray-500">${ysq}</td>
+                    <td class="border p-1 text-blue-600">${x1y}</td>
+                    <td class="border p-1 text-blue-600">${x2y}</td>
+                    <td class="border p-1 text-blue-600">${x1x2}</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('helper-body').innerHTML = helperHTML;
+        document.getElementById('helper-footer').innerHTML = `
+            <tr>
+                <td class="p-2 border">Σ</td>
+                <td class="p-2 border">${sX1}</td>
+                <td class="p-2 border">${sX2}</td>
+                <td class="p-2 border">${sY}</td>
+                <td class="p-2 border">${sX1sq}</td>
+                <td class="p-2 border">${sX2sq}</td>
+                <td class="p-2 border">${sYsq}</td>
+                <td class="p-2 border">${sX1Y}</td>
+                <td class="p-2 border">${sX2Y}</td>
+                <td class="p-2 border">${sX1X2}</td>
+            </tr>
+        `;
+        document.getElementById('result-helper').classList.remove('hidden');
+        document.getElementById('result-steps').classList.remove('hidden');
+
+        // 2. Pearson Calculation Function
+        const calcPearson = (sumX, sumY, sumXY, sumXsq, sumYsq, label1, label2) => {
+            // Internal values (High Precision)
+            let num = (n * sumXY) - (sumX * sumY);
+            let den1 = (n * sumXsq) - (sumX**2);
+            let den2 = (n * sumYsq) - (sumY**2);
+            let den = Math.sqrt(den1 * den2);
+            let r = den === 0 ? 0 : num / den;
+
+            // Display Logic
+            let html = `
+                <div class="mb-6 pb-6 border-b border-dashed border-gray-300">
+                    <h4 class="font-bold text-blue-800 mb-2">● Korelasi ${label1} → ${label2}</h4>
+                    <div class="math-container">
+                        r = ${frac(
+                            `${n}(${sumXY}) - (${sumX})(${sumY})`,
+                            sqrt(`[${n}(${sumXsq}) - (${sumX})²] [${n}(${sumYsq}) - (${sumY})²]`)
+                        )}
+                    </div>
+                    <div class="math-container mt-2">
+                        = ${frac(
+                            `${n*sumXY} - ${sumX*sumY}`,
+                            sqrt(`[${n*sumXsq} - ${sumX**2}] [${n*sumYsq} - ${sumY**2}]`)
+                        )}
+                    </div>
+                    <div class="math-container mt-2">
+                        = ${frac(box(fmt(num, 0)), sqrt(`[${fmt(den1, 0)}] [${fmt(den2, 0)}]`))}
+                    </div>
+                     <div class="math-container mt-2">
+                        = ${frac(box(fmt(num, 0)), box(fmt(den)))} = <strong>${fmt(r)}</strong>
+                    </div>
+                </div>
+            `;
+            return { r, html };
+        };
+
+        const r1y = calcPearson(sX1, sY, sX1Y, sX1sq, sYsq, "X1", "Y");
+        const r2y = calcPearson(sX2, sY, sX2Y, sX2sq, sYsq, "X2", "Y");
+        const r12 = calcPearson(sX1, sX2, sX1X2, sX1sq, sX2sq, "X1", "X2");
+
+        document.getElementById('pearson-output').innerHTML = r1y.html + r2y.html + r12.html;
+
+        // 3. Prepare Squares (Step 2 Sesuai Gambar)
+        // Note: If toggle is ON, we square the rounded r values to simulate manual calculation errors
+        // If toggle is OFF, we square the precise r values
+        let val_r1y = roundingToggle.checked ? parseFloat(r1y.r.toFixed(4)) : r1y.r;
+        let val_r2y = roundingToggle.checked ? parseFloat(r2y.r.toFixed(4)) : r2y.r;
+        let val_r12 = roundingToggle.checked ? parseFloat(r12.r.toFixed(4)) : r12.r;
+
+        let r1y_sq = val_r1y ** 2;
+        let r2y_sq = val_r2y ** 2;
+        let r12_sq = val_r12 ** 2;
+
+        document.getElementById('squared-values').innerHTML = `
+            <div>r<sub>x1y</sub> = ${fmt(val_r1y)} &rarr; r² = ${fmt(r1y_sq)}</div>
+            <div>r<sub>x2y</sub> = ${fmt(val_r2y)} &rarr; r² = ${fmt(r2y_sq)}</div>
+            <div>r<sub>x1x2</sub> = ${fmt(val_r12)} &rarr; r² = ${fmt(r12_sq)}</div>
+        `;
+
+        // 4. Multiple Correlation (R) Calculation
+        // Numerator parts
+        let part1 = r1y_sq + r2y_sq;
+        let part2 = 2 * val_r1y * val_r2y * val_r12;
+        let num_R = part1 - part2;
+        let den_R = 1 - r12_sq;
+        let R_sq = den_R === 0 ? 0 : num_R / den_R;
+        let R_final = Math.sqrt(Math.max(0, R_sq));
+
+        let multipleHTML = `
+            <div class="math-container text-lg mb-4 w-full overflow-x-auto">
+                R = ${sqrt(frac(
+                    `r²<sub>x1y</sub> + r²<sub>x2y</sub> - 2(r<sub>x1y</sub>)(r<sub>x2y</sub>)(r<sub>x1x2</sub>)`,
+                    `1 - r²<sub>x1x2</sub>`
+                ))}
+            </div>
+            
+            <p class="text-sm text-gray-500 mb-1">Substitusi nilai:</p>
+            <div class="math-container mb-3">
+                = ${sqrt(frac(
+                    `${fmt(r1y_sq)} + ${fmt(r2y_sq)} - 2(${fmt(val_r1y)})(${fmt(val_r2y)})(${fmt(val_r12)})`,
+                    `1 - ${fmt(r12_sq)}`
+                ))}
+            </div>
+
+            <div class="math-container mb-3">
+                = ${sqrt(frac(
+                    `${fmt(part1)} - 2(${fmt(val_r1y * val_r2y * val_r12)})`,
+                    `${fmt(den_R)}`
+                ))}
+            </div>
+
+            <div class="math-container mb-3">
+                = ${sqrt(frac(
+                    `${fmt(part1)} - ${fmt(part2)}`,
+                    `${fmt(den_R)}`
+                ))}
+            </div>
+
+            <div class="math-container mb-3">
+                = ${sqrt(frac(box(fmt(num_R)), box(fmt(den_R))))}
+                = ${sqrt(box(fmt(R_sq)))}
+            </div>
+
+            <div class="mt-4 p-4 bg-indigo-50 border border-indigo-300 rounded text-center">
+                <div class="text-2xl font-bold text-indigo-900">R = ${fmt(R_final)}</div>
+                <div class="text-sm text-indigo-700 mt-1">Koefisien Determinasi (R²) = ${fmt(R_sq)}</div>
+            </div>
+        `;
+        document.getElementById('multiple-output').innerHTML = multipleHTML;
+
+        // 5. F Test Calculation
+        // F = (R^2 / k) / ( (1-R^2) / (n-k-1) )
+        let df1 = k;
+        let df2 = n - k - 1;
+        
+        let f_top = R_sq / k;
+        let f_bot = (1 - R_sq) / df2;
+        let f_val = f_bot === 0 ? 0 : f_top / f_bot;
+        
+        let isSig = f_val > fTabel;
+
+        let fHTML = `
+            <div class="flex flex-wrap gap-4 mb-4 text-sm bg-gray-50 p-3 rounded">
+                <div><strong>Diketahui:</strong></div>
+                <div>R² = ${fmt(R_sq)}</div>
+                <div>k = ${k}</div>
+                <div>n = ${n}</div>
+                <div>dk penyebut (n-k-1) = ${df2}</div>
+            </div>
+
+            <div class="math-container mb-4">
+                F<sub>hitung</sub> = ${frac(`R² / k`, `(1 - R²) / (n - k - 1)`)}
+            </div>
+
+            <div class="math-container mb-4">
+                = ${frac(
+                    `${fmt(R_sq)} / ${k}`,
+                    `(${1} - ${fmt(R_sq)}) / ${df2}`
+                )}
+            </div>
+
+            <div class="math-container mb-4">
+                = ${frac(
+                    box(fmt(f_top)),
+                    frac(box(fmt(1-R_sq)), df2)
+                )}
+                 = ${frac(
+                    box(fmt(f_top)),
+                    box(fmt(f_bot))
+                )}
+            </div>
+
+            <div class="mt-6 p-4 border-l-8 rounded-r-lg shadow-sm ${isSig ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}">
+                <div class="flex flex-col md:flex-row items-center justify-between">
+                    <div class="mb-2 md:mb-0">
+                        <span class="text-lg font-bold text-gray-700 block">Hasil Akhir:</span>
+                        <span class="text-3xl font-bold ${isSig ? 'text-green-700' : 'text-red-700'}">
+                            F<sub>hitung</sub> = ${fmt(f_val, 4)}
+                        </span>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-600">F<sub>tabel</sub> = ${fTabel}</div>
+                        <div class="font-bold text-lg ${isSig ? 'text-green-600' : 'text-red-600'}">
+                            ${fmt(f_val, 4)} ${isSig ? '>' : '<'} ${fTabel}
+                        </div>
+                        <div class="inline-block px-3 py-1 rounded-full text-white text-sm font-bold mt-1 ${isSig ? 'bg-green-600' : 'bg-red-500'}">
+                            ${isSig ? 'SIGNIFIKAN' : 'TIDAK SIGNIFIKAN'}
+                        </div>
+                    </div>
+                </div>
+                <p class="mt-3 text-sm text-gray-700 border-t pt-2 border-gray-200">
+                    <strong>Kesimpulan:</strong> 
+                    ${isSig 
+                        ? "Terdapat hubungan yang signifikan secara bersama-sama antara variabel X1 dan X2 terhadap variabel Y." 
+                        : "Tidak terdapat hubungan yang signifikan antara variabel bebas terhadap variabel terikat."}
+                </p>
+            </div>
+        `;
+        document.getElementById('f-test-output').innerHTML = fHTML;
+    }
+
+    // Listener toggle
+    roundingToggle.addEventListener('change', calculate);
+
+    // Run init
+    window.onload = init;
+
+</script>
+</body>
+</html>
