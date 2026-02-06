@@ -1,536 +1,1489 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Materi App & JSON Builder</title>
+    <title>Materi App - Ultimate Block Editor</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c3e50">
 
     <style>
         :root {
-            --bg-color: #f4f7f6;
-            --paper-width: 210mm;
-            --sidebar-width: 250px; 
-            --accent-color: #3498db;
+            /* === Light Theme Colors === */
+            --bg-main: #e0e5ec;
+            --bg-content: #ffffff;
+            --bg-sidebar: #2c3e50;
+            --bg-sidebar-header: #1a252f;
+            --bg-sidebar-footer: #233342;
+            --bg-hover: #f0f0f0;
+            --bg-hover-danger: #fee2e2;
+            --text-primary: #222222;
+            --text-secondary: #666666;
+            --text-on-dark: #ecf0f1;
+            --text-danger: #dc2626;
+            --border-primary: #cccccc;
+            --border-secondary: #eeeeee;
+            --border-strong: #333333;
+            --border-sidebar: #34495e;
+            --shadow-color-light: rgba(0,0,0,0.1);
+            --shadow-color-medium: rgba(0,0,0,0.2);
+            --shadow-color-heavy: rgba(0,0,0,0.4);
+            --modal-overlay: rgba(0,0,0,0.6);
+            --btn-primary-bg: #3498db;
+            --btn-primary-text: white;
+            --selection-bg: #dbeafe; /* Light blue for selection */
+
+            /* === Layout Variables === */
+            --paper-width-portrait: 210mm;
+            --paper-height-portrait: 297mm;
+            --paper-width-landscape: 297mm;
+            --paper-height-landscape: 210mm;
+            --gutter-width: 150px;
+            --sidebar-width: 260px;
+            --indent-size: 40px; 
         }
 
-        /* --- LAYOUT UTAMA --- */
-        body { overflow: hidden; }
-
-        .main-content {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-            background-color: #e5e5e5;
+        @media (prefers-color-scheme: dark) {
+            :root {
+                /* === Dark Theme Colors === */
+                --bg-main: #1a202c;
+                --bg-content: #2d3748;
+                --bg-sidebar: #1e293b;
+                --bg-sidebar-header: #0f172a;
+                --bg-sidebar-footer: #152033;
+                --bg-hover: #4a5568;
+                --bg-hover-danger: #450a0a;
+                --text-primary: #e2e8f0;
+                --text-secondary: #a0aec0;
+                --text-on-dark: #e2e8f0;
+                --text-danger: #f87171;
+                --border-primary: #4a5568;
+                --border-secondary: #3e4c5f;
+                --border-strong: #cbd5e0;
+                --border-sidebar: #2d3748;
+                --shadow-color-light: rgba(0,0,0,0.4);
+                --shadow-color-medium: rgba(0,0,0,0.5);
+                --shadow-color-heavy: rgba(0,0,0,0.6);
+                --modal-overlay: rgba(0,0,0,0.8);
+                --btn-primary-bg: #2b6cb0;
+                --btn-primary-text: #ffffff;
+                --selection-bg: #2b6cb0;
+            }
         }
+
+        body { margin: 0; padding: 0; display: flex; height: 100vh; font-family: 'Segoe UI', sans-serif; overflow: hidden; background-color: var(--bg-main); color: var(--text-primary); user-select: none; }
+        * { box-sizing: border-box; }
+
+        /* --- SIDEBAR --- */
+        #sidebar {
+            width: var(--sidebar-width); background-color: var(--bg-sidebar); color: var(--text-on-dark);
+            display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 2px 0 5px var(--shadow-color-light); z-index: 20;
+        }
+        #sidebar .brand { font-size: 1.2rem; text-align: center; padding: 20px 0; font-weight: bold; background: var(--bg-sidebar-header); }
+        .sidebar-content { padding: 20px; flex-grow: 1; }
+        .sidebar-footer { padding: 20px; background: var(--bg-sidebar-footer); border-top: 1px solid var(--border-sidebar); }
+
+        /* --- MAIN AREA --- */
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
 
         .toolbar {
-            background: white;
-            padding: 10px 20px;
-            border-bottom: 1px solid #ccc;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            z-index: 10;
+            background: var(--bg-content); padding: 10px 20px; height: 65px; border-bottom: 1px solid var(--border-primary);
+            display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 4px var(--shadow-color-light); z-index: 10;
+        }
+        .toolbar input, .toolbar select {
+             background-color: var(--bg-main);
+             color: var(--text-primary);
+             border: 1px solid var(--border-primary);
+        }
+        .toolbar .btn-toggle-group button.active {
+            background-color: var(--btn-primary-bg);
+            color: var(--btn-primary-text);
+            border-color: var(--btn-primary-bg);
         }
 
-        .paper-container {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 30px;
-            display: flex;
-            justify-content: center;
-        }
+        .paper-container { flex-grow: 1; overflow-y: auto; padding: 40px; display: flex; justify-content: center; }
+
+        /* EDITOR LAYOUT */
+        .editor-wrapper { display: flex; flex-direction: row; }
 
         .paper {
-            width: var(--paper-width);
-            min-height: 297mm;
-            background: white;
-            padding: 20mm 25mm;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-            color: #333;
-            font-family: 'Times New Roman', Times, serif;
-            line-height: 1.5;
-            position: relative;
+            background: var(--bg-content);
+            padding: 25mm; 
+            box-shadow: 0 10px 25px var(--shadow-color-light);
+            color: var(--text-primary); font-family: 'Times New Roman', Times, serif; line-height: 1.5;
+            width: var(--paper-width-portrait);
+            min-height: var(--paper-height-portrait);
+        }
+        .paper.landscape {
+            width: var(--paper-width-landscape);
+            min-height: var(--paper-height-landscape);
+        }
+        .paper.split-view {
+            display: flex;
+            gap: 20mm;
+            padding: 25mm 15mm;
+        }
+        .split-column {
+            flex: 1;
+            min-width: 0;
         }
 
-        /* --- STRUKTUR ITEM (Flexbox Nesting) --- */
-        .node-wrapper { display: flex; flex-direction: row; margin-bottom: 10px; position: relative; }
-        .node-marker { min-width: 35px; font-weight: bold; flex-shrink: 0; cursor: pointer; user-select: none; }
-        .node-marker:hover { color: var(--accent-color); text-decoration: underline; }
-        .node-content-col { flex-grow: 1; display: flex; flex-direction: column; }
-        .node-title { font-weight: bold; margin-bottom: 5px; outline: none; }
-        .node-paragraph { text-align: justify; margin-bottom: 8px; text-indent: 40px; outline: none; }
-        .node-children { margin-top: 5px; }
 
-        /* --- VISUAL HELPERS & CONTROLS --- */
-        [contenteditable="true"]:hover { background-color: rgba(255, 255, 0, 0.1); border-radius: 3px; }
-        [contenteditable="true"]:focus { background-color: rgba(255, 255, 0, 0.2); outline: 2px solid var(--accent-color); }
+        /* --- BLOCK SYSTEM --- */
+        .block-row { display: flex; width: 100%; margin-bottom: 12px; position: relative; }
+        .block-bab { padding: 15px; border: 1px solid var(--border-secondary); margin-bottom: 20px; border-radius: 4px; }
 
-        .hover-controls { opacity: 0; transition: opacity 0.2s; margin-left: 10px; display: inline-flex; gap: 2px; }
-        .node-wrapper:hover > .node-content-col > .node-title .hover-controls { opacity: 1; }
+        .type-badge {
+            display: inline-block; background: var(--bg-content); border: 2px solid var(--border-strong); border-radius: 4px;
+            padding: 4px 10px; font-family: sans-serif; font-size: 11px; font-weight: bold;
+            color: var(--text-primary); cursor: pointer; box-shadow: 3px 3px 0px var(--shadow-color-light);
+            transition: 0.1s; user-select: none; white-space: nowrap;
+        }
+        .type-badge:hover { background: var(--bg-hover); transform: translate(-1px, -1px); }
+        .type-badge:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0px var(--shadow-color-light); }
 
-        .btn-mini { font-size: 10px; padding: 2px 5px; border: 1px solid #ccc; background: #eee; cursor: pointer; border-radius: 3px; }
-        .btn-mini:hover { background: #ddd; }
-        .btn-del { color: red; border-color: #ffcccc; background: #fff5f5; }
+        /* KONTEN (KANAN) */
+        .block-content { flex-grow: 1; display: flex; flex-direction: column; }
+        .flex-row { display: flex; align-items: flex-start; }
+        .inner-marker { 
+            min-width: var(--indent-size); font-weight: bold; flex-shrink: 0; display: inline-block;
+        }
+        .content-editable { outline: none; flex-grow: 1; word-wrap: break-word; min-height: 1.2em; user-select: text; }
+        .content-paragraph { text-align: justify; text-indent: 2em; }
+        .node-children { 
+            margin-top: 5px; margin-left: var(--indent-size);
+            border-left: 1px dashed var(--border-secondary); padding-left: 5px; 
+        }
+        .node-children .content-paragraph { text-indent: 0 !important; }
 
-        .main-doc-title { text-align: center; font-size: 16pt; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
-        .main-doc-desc { text-align: center; font-size: 12pt; margin-bottom: 30px; font-style: italic; }
+        /* TABLE STYLES */
+        .table-container td { position: relative; }
+        .table-container td.selected { background-color: var(--selection-bg) !important; }
+        .table-container .content-editable { padding: 4px; }
 
-        .btn { padding: 8px 12px; cursor: pointer; background: var(--accent-color); color: white; border: none; border-radius: 4px; display: flex; align-items: center; gap: 5px; font-size: 0.9rem;}
-        .btn-outline { background: white; color: #333; border: 1px solid #ccc; }
-        .btn-outline:hover { background: #f0f0f0; }
-        .btn-dark { background: #444; color: white; border: none; }
-        .btn-dark:hover { background: #555; }
 
-        /* --- MODAL PASTE TEXT --- */
+        /* MODALS & DROPDOWNS */
+        .type-selector, #tableContextMenu {
+            position: fixed; background: var(--bg-content); border: 2px solid var(--border-strong); border-radius: 6px;
+            box-shadow: 5px 5px 20px var(--shadow-color-medium); z-index: 1000; display: none;
+            width: 220px;
+        }
+        .selector-section { padding: 5px 0; }
+        .selector-header { padding: 5px 12px; font-size: 10px; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; }
+        .selector-hr { margin: 4px 5px; border: 0; border-top: 1px solid var(--border-secondary); }
+
+        .type-option { padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 13px; border-radius: 4px; margin: 0 5px; }
+        .type-option:hover { background: var(--bg-hover); }
+        .type-option[disabled] { opacity: 0.5; cursor: not-allowed; background: transparent !important; }
+        .type-option-danger:hover { background: var(--bg-hover-danger); color: var(--text-danger); }
+        .type-option b.fa-fw { display: inline-block; width: 1.25em; text-align: center; }
+
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 1000; display: none;
-            justify-content: center; align-items: center;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-overlay);
+            display: none; justify-content: center; align-items: center; z-index: 2000;
         }
-        .modal-box {
-            background: white; width: 80%; max-width: 800px; height: 80%;
-            border-radius: 8px; padding: 20px; display: flex; flex-direction: column;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        .modal-box { background: var(--bg-content); padding: 25px; border-radius: 8px; width: 500px; box-shadow: 0 15px 40px var(--shadow-color-heavy); }
+        .modal-box h3, .modal-box h4, .modal-box p { color: var(--text-primary); }
+        .modal-box p { color: var(--text-secondary); }
+        .modal-box textarea, .modal-box input {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
+            padding: 8px;
+            border-radius: 4px;
         }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .modal-header h3 { margin: 0; color: #333; }
-        .textarea-parser {
-            flex-grow: 1; width: 100%; padding: 15px; border: 1px solid #ccc;
-            border-radius: 4px; font-family: 'Courier New', monospace; font-size: 14px;
-            resize: none; margin-bottom: 15px;
-        }
-        .textarea-parser:focus { outline: 2px solid var(--accent-color); }
 
-        /* --- MARKER SELECTOR --- */
-        .marker-selector {
-            position: absolute; background: white; border: 1px solid #999; padding: 5px;
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.2); z-index: 100; display: none;
-            border-radius: 4px; font-family: sans-serif; font-size: 12px;
+        /* BUTTONS */
+        .btn { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+        .btn-primary { background: var(--btn-primary-bg); color: var(--btn-primary-text); }
+        .btn-outline { background: var(--bg-content); border: 1px solid var(--border-primary); color: var(--text-primary); }
+        .btn-outline:hover { background-color: var(--bg-hover); }
+        .btn-full { width: 100%; margin-bottom: 10px; }
+
+        /* BADGE DI GUTTER (KIRI) */
+        .type-badge-container {
+            position: absolute; left: calc(-1 * var(--gutter-width) - 15px);
+            width: var(--gutter-width); text-align: right; top: 0;
         }
-        .marker-option { padding: 4px 8px; cursor: pointer; display: block; }
-        .marker-option:hover { background-color: #eee; }
-        .marker-input { width: 80px; padding: 3px; margin-top: 5px; }
+        .toolbar-separator { border-left:1px solid var(--border-secondary); padding-left:15px; margin-left:10px; }
 
         @media print {
-            #sidebar, .toolbar, .hover-controls, .modal-overlay { display: none !important; }
-            .paper-container { padding: 0; background: white; height: auto; display: block; }
-            .paper { box-shadow: none; width: 100%; margin: 0; padding: 0; }
-            .main-content { height: auto; overflow: visible; }
-            body { overflow: visible; }
+            @page {
+                size: A4;
+                margin: 2cm;
+            }
+
+            body, .main-content, .paper-container {
+                overflow: visible !important;
+                height: auto !important;
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            #sidebar, .toolbar, .type-badge-container, .type-selector, #tableContextMenu {
+                display: none !important;
+            }
+            
+            .paper { 
+                box-shadow: none !important; 
+                width: 100% !important; 
+                margin: 0 !important; 
+                padding: 0 !important;
+                min-height: 0 !important;
+                border: none !important;
+                color: #000 !important;
+            }
+            .node-children {
+                border-left: none !important;
+            }
         }
     </style>
+<script type="importmap">
+{
+  "imports": {
+    "rxjs": "https://esm.sh/rxjs@^7.8.2?conditions=es2015",
+    "rxjs/operators": "https://esm.sh/rxjs@^7.8.2/operators?conditions=es2015",
+    "rxjs/ajax": "https://esm.sh/rxjs@^7.8.2/ajax?conditions=es2015",
+    "rxjs/webSocket": "https://esm.sh/rxjs@^7.8.2/webSocket?conditions=es2015",
+    "rxjs/testing": "https://esm.sh/rxjs@^7.8.2/testing?conditions=es2015",
+    "rxjs/fetch": "https://esm.sh/rxjs@^7.8.2/fetch?conditions=es2015",
+    "@angular/core": "https://esm.sh/@angular/core@^21.1.3?external=rxjs",
+    "immer": "https://esm.sh/immer@^11.1.3?external=rxjs",
+    "@angular/common": "https://esm.sh/(@angular/common@^21.1.3?external=rxjs"
+  }
+}
+</script>
 </head>
 <body>
 
     <nav id="sidebar">
-        <div class="brand">My Tools</div>
-        <a href="index.html" class="nav-link">Advanced Cleaner</a>
-        <a href="TextCleaner.html" class="nav-link">Quote Cleaner</a>
-        <a href="materiApp.html" class="nav-link active">Materi App</a>
-        <a href="materiAppV2.html" class="nav-link">Materi App v2</a>
-        <a href="materiAppV3.html" class="nav-link">Materi App v3</a>
-        <a href="PearsonProductMomentV3.html" class="nav-link">Pearson Calculator</a>
-        <a href="korelasiGanda.html" class="nav-link">Korelasi Ganda</a>
-
-        <div style="padding: 15px; border-top: 1px solid #444; margin-top: auto;">
-            <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 5px;">File Manager</div>
-            <button class="btn btn-dark" style="width:100%; margin-bottom:5px;" onclick="createNew()"><i class="fas fa-file"></i> Baru</button>
-            <button class="btn btn-dark" style="width:100%; margin-bottom:5px;" onclick="openPasteModal()"><i class="fas fa-paste"></i> Paste Text</button>
-            
-            <input type="file" id="docxInput" accept=".docx,.json" style="display: none;" onchange="handleFile(this)">
-            <button class="btn btn-dark" style="width:100%; margin-bottom:5px;" onclick="document.getElementById('docxInput').click()"><i class="fas fa-folder-open"></i> Import DOCX</button>
-            
-            <button class="btn btn-dark" style="width:100%;" onclick="downloadJson()"><i class="fas fa-download"></i> Save JSON</button>
+        <div class="brand">MATERI BUILDER</div>
+        <div class="sidebar-content">
+            <button class="btn btn-outline btn-full" onclick="openModal('pasteModal')"><i class="fas fa-paste"></i> Smart Paste Text</button>
+            <hr style="border: 0; border-top: 1px solid #444; margin: 20px 0;">
+            <div style="font-size: 11px; color: #888; margin-bottom: 10px; letter-spacing: 1px;">IMPORT / EXPORT</div>
+            <input type="file" id="fileInput" style="display:none" onchange="handleFileImport(this)">
+            <button class="btn btn-outline btn-full" onclick="document.getElementById('fileInput').click()"><i class="fas fa-file-import"></i> Import DOCX / JSON</button>
+            <button class="btn btn-primary btn-full" onclick="saveJson()"><i class="fas fa-save"></i> Save JSON</button>
+        </div>
+        <div class="sidebar-footer">
+            <button class="btn btn-outline btn-full" onclick="openShortcutModal()"><i class="fas fa-keyboard"></i> Pengaturan Pintasan</button>
+            <button class="btn btn-outline btn-full" onclick="createNew()"><i class="fas fa-file"></i> Buat Baru</button>
         </div>
     </nav>
 
     <div class="main-content">
         <div class="toolbar">
-            <input type="text" id="filename" value="Materi_Baru" style="padding: 5px; font-weight: bold;">
+            <input type="text" id="docFilename" value="Materi_Ekonomi_Publik" style="padding: 8px; border-radius: 4px; width: 200px;">
+            
+            <div class="toolbar-separator" style="display:flex; align-items:center; gap:10px; font-size:12px;">
+                <i class="fas fa-arrows-alt-h"></i> Indent: 
+                <input type="range" min="20" max="100" value="40" oninput="updateMargin(this.value)" style="cursor:pointer; width: 100px;">
+                <span id="marginVal">40px</span>
+            </div>
+
+            <div class="toolbar-separator" style="display:flex; align-items:center; gap:10px; font-size:12px;">
+                 <i class="fas fa-text-height"></i>
+                 <input type="number" id="fontSize" min="8" max="72" value="12" onchange="setFontSize(this.value)" style="width: 60px; padding: 4px;">
+            </div>
+
+            <div id="layoutControls" class="toolbar-separator btn-toggle-group" style="display:flex; align-items:center; gap:5px;">
+                <button class="btn btn-outline" id="portraitBtn" onclick="setPageLayout('portrait')"><i class="fas fa-file"></i></button>
+                <button class="btn btn-outline" id="landscapeBtn" onclick="setPageLayout('landscape')"><i class="fas fa-file" style="transform: rotate(270deg);"></i></button>
+                <button class="btn btn-outline" id="splitViewBtn" onclick="toggleSplitView()"><i class="fas fa-columns"></i></button>
+            </div>
+
+
             <div style="flex-grow:1"></div>
-            <button class="btn btn-outline" onclick="addRootNode()"><i class="fas fa-plus"></i> Tambah Bab Utama</button>
-            <button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> PDF/Print</button>
+            <button class="btn btn-outline" onclick="addRootNode()"><i class="fas fa-plus"></i> Tambah Bab</button>
+            <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> PDF / Print</button>
         </div>
 
         <div class="paper-container">
-            <div class="paper" id="paper">
-                </div>
+            <div class="editor-wrapper" id="editorWrapper">
+                <div class="paper" id="paper"></div>
+            </div>
         </div>
     </div>
 
+    <!-- Type Selector (Dropdown) -->
+    <div id="typeSelector" class="type-selector">
+        <div id="normalActions" class="selector-section">
+            <div class="selector-header">Aksi</div>
+            <div id="actionIndent" class="type-option" onclick="indentNode()"><i class="fas fa-indent fa-fw"></i> Geser ke Dalam</div>
+            <div id="actionOutdent" class="type-option" onclick="outdentNode()"><i class="fas fa-outdent fa-fw"></i> Geser ke Luar</div>
+            <div id="actionRestart" class="type-option" onclick="toggleRestartNumbering()"><i class="fas fa-undo fa-fw"></i> Mulai Ulang Hitungan</div>
+            <div id="actionParagraphIndent" class="type-option" onclick="toggleParagraphIndent()"><i class="fas fa-paragraph fa-fw"></i> Toggle Indentasi</div>
+             <div id="actionMargin" class="type-option" onclick="toggleMarginBottom()"><i class="fas fa-arrows-alt-v fa-fw"></i> Toggle Spasi Bawah</div>
+            <hr class="selector-hr" id="actionSeparator" style="display:none;" />
+            <div class="type-option" onclick="copyFormat()"><i class="fas fa-copy fa-fw"></i> Copy Format</div>
+            <div class="type-option" onclick="handleSelectorAction('addSibling')"><i class="fas fa-plus fa-fw"></i> Tambah Baris Baru</div>
+            <div class="type-option" onclick="handleSelectorAction('addChild')"><i class="fas fa-long-arrow-alt-right fa-fw"></i> Tambah Anak</div>
+            <div class="type-option type-option-danger" onclick="handleSelectorAction('removeNode')"><i class="fas fa-trash fa-fw"></i> Hapus</div>
+        </div>
+        <div id="pasteActions" class="selector-section" style="display: none;">
+            <div class="selector-header">Paste Mode</div>
+            <div class="type-option" onclick="pasteFormat()"><i class="fas fa-paste fa-fw"></i> Paste Format</div>
+            <div class="type-option" onclick="cancelPasteFormat()"><i class="fas fa-times fa-fw"></i> Batal</div>
+        </div>
+        <hr class="selector-hr" style="margin: 0 5px;">
+        <div class="selector-section">
+            <div class="selector-header">Tipe Blok</div>
+            <div class="type-option" onclick="setBlockType('paragraph')"><i class="fas fa-align-left fa-fw"></i> Paragraf</div>
+            <div class="type-option" onclick="setBlockType('BAB')"><i class="fas fa-book-open fa-fw"></i> BAB</div>
+            <div class="type-option" onclick="setBlockType('custom')"><i class="fas fa-pen fa-fw"></i> Custom Point</div>
+            <hr class="selector-hr">
+            <div class="type-option" onclick="setBlockType('A.')"><b class="fa-fw">A.</b> Huruf Besar</div>
+            <div class="type-option" onclick="setBlockType('a.')"><b class="fa-fw">a.</b> Huruf Kecil</div>
+            <div class="type-option" onclick="setBlockType('1.')"><b class="fa-fw">1.</b> Angka</div>
+            <hr class="selector-hr">
+            <div class="type-option" onclick="setBlockType('bullet')"><i class="fas fa-circle fa-fw" style="font-size: 0.5rem;"></i> Bullet (•)</div>
+            <div class="type-option" onclick="setBlockType('dash')"><b class="fa-fw">-</b> Dash (-)</div>
+            <hr class="selector-hr">
+            <div class="type-option" onclick="setBlockType('image')"><i class="fas fa-image fa-fw"></i> Image</div>
+            <div class="type-option" onclick="setBlockType('table')"><i class="fas fa-table fa-fw"></i> Table</div>
+        </div>
+    </div>
+
+    <!-- Table Context Menu -->
+    <div id="tableContextMenu" class="type-selector" style="width: 240px;">
+         <div class="selector-section">
+            <div class="selector-header">Seleksi</div>
+            <div id="mergeBtn" class="type-option" onclick="mergeSelectedCells()"><i class="fas fa-compress-arrows-alt fa-fw"></i> Merge Cells</div>
+            <div id="splitBtn" class="type-option" onclick="splitSelectedCell()"><i class="fas fa-expand-arrows-alt fa-fw"></i> Split Cell</div>
+        </div>
+        <hr class="selector-hr">
+         <div class="selector-section">
+            <div class="selector-header">Baris & Kolom</div>
+            <div class="type-option" onclick="addTableRow(true)"><i class="fas fa-arrow-up fa-fw"></i> Add Row Above</div>
+            <div class="type-option" onclick="addTableRow(false)"><i class="fas fa-arrow-down fa-fw"></i> Add Row Below</div>
+            <div class="type-option" onclick="addTableColumn(true)"><i class="fas fa-arrow-left fa-fw"></i> Add Column Left</div>
+            <div class="type-option" onclick="addTableColumn(false)"><i class="fas fa-arrow-right fa-fw"></i> Add Column Right</div>
+            <hr class="selector-hr">
+            <div class="type-option type-option-danger" onclick="deleteTableRow()"><i class="fas fa-trash-alt fa-fw"></i> Delete Row</div>
+            <div class="type-option type-option-danger" onclick="deleteTableColumn()"><i class="fas fa-trash-alt fa-fw"></i> Delete Column</div>
+        </div>
+    </div>
+
+    <!-- Modals -->
     <div id="pasteModal" class="modal-overlay">
         <div class="modal-box">
-            <div class="modal-header">
-                <h3><i class="fas fa-magic"></i> Smart Text Import</h3>
-                <button class="btn-mini btn-del" onclick="closePasteModal()" style="font-size:14px; padding:5px 10px;">X</button>
-            </div>
-            <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">
-                Tempel teks lengkap (judul, poin, paragraf) di bawah ini. Aplikasi akan mendeteksi penomoran secara otomatis.
-            </div>
-            <textarea id="rawTextInput" class="textarea-parser" placeholder="Contoh:
-Pertemuan 1 - Konsep Dasar
-A. Pengertian
-    Ekonomi publik adalah cabang ilmu...
-1. Fungsi Pemerintah
-    a. Alokasi sumber daya
-    b. Distribusi pendapatan"></textarea>
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button class="btn btn-outline" onclick="closePasteModal()">Batal</button>
-                <button class="btn" onclick="processRawText()">Proses & Rekonstruksi</button>
+            <h3><i class="fas fa-magic"></i> Smart Paste</h3>
+            <p>Paste teks dari Word/PDF. Sistem akan mendeteksi poin secara otomatis.</p>
+            <textarea id="rawPasteArea" style="width: 100%; height: 300px; padding: 10px; font-family: monospace;"></textarea>
+            <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-outline" onclick="closeModal('pasteModal')">Batal</button>
+                <button class="btn btn-primary" onclick="processSmartPaste()">Proses Teks</button>
             </div>
         </div>
     </div>
 
-    <div id="markerSelector" class="marker-selector">
-        <div class="marker-option" onclick="applyMarker('A.')">A. B. C. (Huruf Kapital)</div>
-        <div class="marker-option" onclick="applyMarker('1.')">1. 2. 3. (Angka)</div>
-        <div class="marker-option" onclick="applyMarker('a)')">a) b) c) (Huruf Kecil)</div>
-        <div class="marker-option" onclick="applyMarker('circle')">○ (Lingkaran)</div>
-        <div class="marker-option" onclick="applyMarker('disc')">● (Bulat Penuh)</div>
-        <div class="marker-option" onclick="applyMarker('dash')">- (Strip)</div>
-        <hr style="margin: 2px 0;">
-        <div style="padding: 4px;">
-            <input type="text" id="customMarkerInput" class="marker-input" placeholder="Manual..">
-            <button onclick="applyManualMarker()" class="btn-mini">OK</button>
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-box" style="width: 300px;">
+            <h4 id="customModalTitle">Label Custom</h4>
+            <input type="text" id="customInput" placeholder="Contoh: Pert 1" style="width:100%;">
+            <div style="margin-top:15px; text-align:right;">
+                <button class="btn btn-primary" onclick="applyCustomLabel()">Simpan</button>
+            </div>
         </div>
     </div>
 
-<script>
-    // --- Data Model ---
-    let docData = {
-        title: "JUDUL MATERI",
-        desc: "Deskripsi Materi",
-        children: [{
-            type: "A.", title: "Contoh Bab", paragraphs: ["Silakan edit atau paste teks baru."], children: []
-        }]
-    };
+    <div id="tableCreationModal" class="modal-overlay">
+        <div class="modal-box" style="width: 350px;">
+            <h4><i class="fas fa-table"></i> Buat Tabel Baru</h4>
+            <p style="font-size: 13px;">Tentukan ukuran awal untuk tabel Anda.</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                <div>
+                    <label for="tableRows" style="font-size: 12px; display: block; margin-bottom: 5px;">Baris</label>
+                    <input type="number" id="tableRows" value="3" min="1" style="width: 100%;">
+                </div>
+                 <div>
+                    <label for="tableCols" style="font-size: 12px; display: block; margin-bottom: 5px;">Kolom</label>
+                    <input type="number" id="tableCols" value="3" min="1" style="width: 100%;">
+                </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-outline" onclick="closeModal('tableCreationModal')">Batal</button>
+                <button class="btn btn-primary" onclick="applyTableCreation()">Buat Tabel</button>
+            </div>
+        </div>
+    </div>
 
-    // --- State ---
-    let selectedNodePath = null; 
+    <div id="shortcutModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3><i class="fas fa-keyboard"></i> Pengaturan Pintasan Keyboard</h3>
+            <p>Klik pada kolom input dan tekan kombinasi tombol baru yang Anda inginkan.</p>
+            <div id="shortcutList" style="margin-top: 20px; max-height: 40vh; overflow-y: auto; padding-right: 10px;">
+                <!-- Shortcuts will be dynamically populated here -->
+            </div>
+            <div style="margin-top: 25px; display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn btn-outline" onclick="resetShortcutsToDefault()">Reset ke Default</button>
+                <div>
+                    <button class="btn btn-outline" onclick="closeModal('shortcutModal')" style="margin-right: 10px;">Batal</button>
+                    <button class="btn btn-primary" onclick="saveCustomShortcuts()">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    // --- Core Renderer ---
-    function render() {
-        const paper = document.getElementById('paper');
-        paper.innerHTML = '';
 
-        const h1 = createEditableDiv('main-doc-title', docData.title, (t) => docData.title = t);
-        paper.appendChild(h1);
-        const desc = createEditableDiv('main-doc-desc', docData.desc, (t) => docData.desc = t);
-        paper.appendChild(desc);
+    <script>
+        // --- DATA STATE ---
+        let docData = {
+            title: "JUDUL MATERI PEMBELAJaran",
+            desc: "Deskripsi atau Pendahuluan Dokumen",
+            settings: {
+                fontSize: 12,
+                layout: 'portrait',
+                splitMode: false
+            },
+            children: [
+                { type: "BAB", manualLabel: "BAB I", title: "PENDAHULUAN", children: [
+                    { type: "A.", title: "Latar Belakang", children: [] },
+                    { type: "paragraph", title: "Ekonomi publik adalah disiplin ilmu yang membahas tentang kebijakan pemerintah.", firstLineIndent: true, children: [] },
+                ] },
+                { type: "BAB", manualLabel: "BAB II", title: "PEMBAHASAN", children: [
+                     { type: "A.", title: "Fungsi Alokasi", children: [
+                        { type: "1.", title: "Penyediaan Barang Publik", noMarginBottom: true, children: [] },
+                        { type: "paragraph", title: "Ini adalah paragraf penjelasan yang sejajar dengan huruf 'P' di atas.", firstLineIndent: false, children: [] }
+                    ]}
+                ]}
+            ]
+        };
 
-        renderNodes(docData.children, paper, []);
-    }
+        let activePath = null;
+        let focusAfterRender = null;
+        
+        // --- TABLE EDITING STATE ---
+        let isSelectingForTable = false;
+        let tableSelection = { path: null, start: null, end: null };
+        let activeTableContext = { path: null, cell: null };
+        
+        // --- FORMATTING STATE ---
+        let copiedFormat = null;
+        
+        // --- SHORTCUT STATE ---
+        let shortcuts = {};
+        let tempShortcuts = {}; // For modal editing
 
-    function createEditableDiv(className, text, updateFn) {
-        const div = document.createElement('div');
-        div.className = className;
-        div.contentEditable = true;
-        div.innerText = text;
-        div.onblur = (e) => updateFn(e.target.innerText);
-        return div;
-    }
+        const defaultShortcuts = {
+            'indent':       { ctrlKey: true, shiftKey: false, altKey: false, key: 'Tab' },
+            'outdent':      { ctrlKey: true, shiftKey: true,  altKey: false, key: 'Tab' },
+            'addSibling':   { ctrlKey: true, shiftKey: false, altKey: false, key: 'ArrowDown' },
+            'addChild':     { ctrlKey: true, shiftKey: false, altKey: false, key: 'ArrowRight' },
+            'toggleMargin': { ctrlKey: true, shiftKey: true,  altKey: false, key: 'ArrowDown' },
+            'deleteNode':   { ctrlKey: false, shiftKey: false, altKey: false, key: 'Delete' }
+        };
 
-    function renderNodes(nodes, container, path) {
-        let counters = { 'A.': 0, 'a.': 0, '1.': 0, 'a)': 0, 'I.': 0 };
+        const shortcutLabels = {
+            'indent': 'Geser ke Dalam (Indent)',
+            'outdent': 'Geser ke Luar (Outdent)',
+            'addSibling': 'Tambah Baris Baru',
+            'addChild': 'Tambah Anak Baru',
+            'toggleMargin': 'Toggle Spasi Bawah',
+            'deleteNode': 'Hapus Blok Kosong'
+        };
 
-        nodes.forEach((node, index) => {
-            const currentPath = [...path, index];
-            const wrapper = document.createElement('div');
-            wrapper.className = 'node-wrapper';
 
-            // Marker
-            const markerDiv = document.createElement('div');
-            markerDiv.className = 'node-marker';
-            markerDiv.innerText = node.manualLabel || getAutoMarker(node.type, counters);
-            markerDiv.onclick = (e) => openMarkerSelector(e, currentPath);
-            wrapper.appendChild(markerDiv);
-
-            // Content Column
-            const contentCol = document.createElement('div');
-            contentCol.className = 'node-content-col';
-
-            // Title
-            const titleDiv = document.createElement('div');
-            titleDiv.className = 'node-title';
-            titleDiv.innerHTML = `<span contenteditable="true">${node.title}</span>`;
-            titleDiv.querySelector('span').onblur = (e) => getNode(currentPath).title = e.target.innerText;
+        // --- RENDERER ---
+        function render() {
+            const paper = document.getElementById('paper');
+            const editorWrapper = document.getElementById('editorWrapper');
+            const settings = docData.settings || {};
             
-            // Hover Controls
-            const controls = document.createElement('span');
-            controls.className = 'hover-controls';
-            controls.innerHTML = `
-                <button class="btn-mini" onclick="addParagraph(${JSON.stringify(currentPath)})">+Teks</button>
-                <button class="btn-mini" onclick="addChild(${JSON.stringify(currentPath)})">+Poin</button>
-                <button class="btn-mini btn-del" onclick="deleteNode(${JSON.stringify(currentPath)})"><i class="fas fa-times"></i></button>
-            `;
-            titleDiv.appendChild(controls);
-            contentCol.appendChild(titleDiv);
+            // Apply settings
+            paper.style.fontSize = (settings.fontSize || 12) + 'pt';
+            document.getElementById('fontSize').value = settings.fontSize || 12;
 
-            // Paragraphs
-            if(node.paragraphs) {
-                node.paragraphs.forEach((pText, pIndex) => {
-                    const pDiv = document.createElement('div');
-                    pDiv.className = 'node-paragraph';
-                    pDiv.contentEditable = true;
-                    pDiv.innerText = pText;
-                    pDiv.onblur = (e) => {
-                        const n = getNode(currentPath);
-                        n.paragraphs[pIndex] = e.target.innerText;
-                        if(!e.target.innerText.trim()) { n.paragraphs.splice(pIndex, 1); render(); }
-                    };
-                    contentCol.appendChild(pDiv);
-                });
-            }
+            paper.classList.toggle('landscape', settings.layout === 'landscape');
+            paper.classList.remove('split-view');
+            
+            const wrapperWidth = settings.layout === 'landscape' ? 
+                'calc(var(--paper-width-landscape) + var(--gutter-width) + 20px)' :
+                'calc(var(--paper-width-portrait) + var(--gutter-width) + 20px)';
+            editorWrapper.style.width = wrapperWidth;
 
-            // Children (Recursive)
-            const childrenContainer = document.createElement('div');
-            childrenContainer.className = 'node-children';
-            if (node.children && node.children.length > 0) {
-                renderNodes(node.children, childrenContainer, currentPath);
-            }
-            contentCol.appendChild(childrenContainer);
+            document.getElementById('portraitBtn').classList.toggle('active', settings.layout === 'portrait');
+            document.getElementById('landscapeBtn').classList.toggle('active', settings.layout === 'landscape');
+            document.getElementById('splitViewBtn').classList.toggle('active', settings.splitMode);
+            
+            paper.innerHTML = '';
 
-            wrapper.appendChild(contentCol);
-            container.appendChild(wrapper);
-        });
-    }
-
-    // --- Helper Functions ---
-    function getAutoMarker(type, counters) {
-        if (type === 'circle') return '○';
-        if (type === 'disc') return '●';
-        if (type === 'dash') return '-';
-        
-        if (!counters[type]) counters[type] = 0;
-        counters[type]++;
-        const num = counters[type];
-
-        if (type === 'A.') return String.fromCharCode(64 + num) + ".";
-        if (type === 'a.') return String.fromCharCode(96 + num) + ".";
-        if (type === 'a)') return String.fromCharCode(96 + num) + ")";
-        if (type === '1.') return num + ".";
-        return "•";
-    }
-
-    function getNode(path) {
-        let current = docData;
-        for (let i of path) current = current.children[i];
-        return current;
-    }
-    function getParent(path) {
-        let current = docData;
-        for (let i = 0; i < path.length - 1; i++) current = current.children[path[i]];
-        return current;
-    }
-
-    // --- Action Handlers ---
-    function addRootNode() { docData.children.push({ type: "A.", title: "Bab Baru", paragraphs: [], children: [] }); render(); }
-    
-    function addChild(path) {
-        const parent = getNode(path);
-        if (!parent.children) parent.children = [];
-        let newType = parent.type === "A." ? "1." : (parent.type === "1." ? "a)" : "dash");
-        parent.children.push({ type: newType, title: "Poin Baru", paragraphs: [], children: [] });
-        render();
-    }
-
-    function addParagraph(path) {
-        const node = getNode(path);
-        if (!node.paragraphs) node.paragraphs = [];
-        node.paragraphs.push("Tulis paragraf...");
-        render();
-    }
-
-    function deleteNode(path) {
-        if (!confirm("Hapus?")) return;
-        const index = path[path.length - 1];
-        if (path.length === 1) docData.children.splice(index, 1);
-        else getParent(path).children.splice(index, 1);
-        render();
-    }
-
-    // --- Marker Selector ---
-    function openMarkerSelector(e, path) {
-        e.stopPropagation();
-        selectedNodePath = path;
-        const modal = document.getElementById('markerSelector');
-        const rect = e.target.getBoundingClientRect();
-        modal.style.display = 'block';
-        modal.style.top = (rect.bottom + window.scrollY) + 'px';
-        modal.style.left = rect.left + 'px';
-        document.getElementById('customMarkerInput').value = "";
-    }
-    function applyMarker(type) {
-        if (selectedNodePath) { getNode(selectedNodePath).type = type; getNode(selectedNodePath).manualLabel = null; render(); }
-        document.getElementById('markerSelector').style.display = 'none';
-    }
-    function applyManualMarker() {
-        const val = document.getElementById('customMarkerInput').value;
-        if (selectedNodePath && val) { getNode(selectedNodePath).manualLabel = val + " "; render(); }
-        document.getElementById('markerSelector').style.display = 'none';
-    }
-    document.addEventListener('click', (e) => {
-        if(!e.target.closest('.node-marker') && !e.target.closest('.marker-selector')) 
-            document.getElementById('markerSelector').style.display = 'none';
-    });
-
-    // --- NEW FEATURE: PASTE TEXT PARSER ---
-    function openPasteModal() { document.getElementById('pasteModal').style.display = 'flex'; }
-    function closePasteModal() { document.getElementById('pasteModal').style.display = 'none'; }
-
-    function processRawText() {
-        const raw = document.getElementById('rawTextInput').value;
-        if(!raw.trim()) return;
-
-        const lines = raw.split('\n');
-        
-        // Reset Structure
-        docData.children = [];
-        docData.title = "Hasil Import Teks";
-        docData.desc = "Silakan rapikan jika ada yang meleset.";
-
-        let currentSection = null;
-        let currentPoint = null;
-        let currentSub = null;
-
-        // Regex Patterns (Heuristic)
-        const rgxSection = /^(Pertemuan|Pert|Modul|BAB|Kegiatan Belajar)\s*\d+|^\s*[A-Z]\.\s/i; 
-        const rgxPoint = /^\s*\d+\.\s/; // Angka (1.)
-        const rgxSub = /^\s*([a-z]\)|[a-z]\.|-|•|○|●)\s/; // Huruf (a.) atau Bullet
-        
-        lines.forEach(line => {
-            let text = line.trim();
-            if(!text) return;
-
-            // 1. Deteksi Level 1 (Judul Bab / A.)
-            if (rgxSection.test(text)) {
-                // Bersihkan marker dari teks judul jika perlu, tapi untuk manual label biarkan
-                let isManual = !/^[A-Z]\.\s/.test(text); // Jika bukan A. B. C., anggap manual (Pertemuan 1)
+            const createHeader = () => {
+                const header = document.createElement('div');
+                header.style.textAlign = 'center';
+                header.style.marginBottom = '40px';
+                header.innerHTML = `
+                    <div contenteditable="true" class="content-editable" data-path='["title"]' onblur="docData.title=this.innerText">${docData.title}</div>
+                    <div contenteditable="true" class="content-editable" data-path='["desc"]' style="font-size:1em; font-style:italic; margin-top:5px;" onblur="docData.desc=this.innerText">${docData.desc}</div>
+                `;
+                return header;
+            };
+            
+            if (settings.splitMode) {
+                paper.classList.add('split-view');
+                const column1 = document.createElement('div');
+                column1.className = 'split-column';
+                const column2 = document.createElement('div');
+                column2.className = 'split-column';
                 
-                let label = null;
-                let titleContent = text;
+                column1.appendChild(createHeader());
 
-                if(isManual) {
-                    const parts = text.split(/[-:]/); // Split Pertemuan 1 - Judul
-                    label = parts[0].trim();
-                    titleContent = parts.length > 1 ? parts.slice(1).join(' ').trim() : "";
-                } else {
-                    titleContent = text.replace(/^[A-Z]\.\s/, '');
+                paper.appendChild(column1);
+                paper.appendChild(column2);
+
+                const splitIndex = Math.ceil(docData.children.length / 2);
+                renderNodes(docData.children.slice(0, splitIndex), column1, []);
+                renderNodes(docData.children.slice(splitIndex), column2, [], splitIndex);
+            } else {
+                 paper.appendChild(createHeader());
+                 renderNodes(docData.children, paper, []);
+            }
+
+            if (focusAfterRender && focusAfterRender.path) {
+                const pathStr = JSON.stringify(focusAfterRender.path);
+                const elToFocus = document.querySelector(`.content-editable[data-path='${pathStr}']`);
+
+                if (elToFocus) {
+                    elToFocus.focus();
+                    const textNode = elToFocus.firstChild;
+                    if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+                        try {
+                            const range = document.createRange();
+                            const sel = window.getSelection();
+                            const textLength = textNode.length;
+                            
+                            let start = focusAfterRender.start;
+                            let end = focusAfterRender.end;
+
+                            if (start === -1) start = textLength;
+                            if (end === -1) end = textLength;
+
+                            range.setStart(textNode, Math.min(start, textLength));
+                            range.setEnd(textNode, Math.min(end, textLength));
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        } catch (e) {
+                            console.error("Failed to set selection range.", e);
+                        }
+                    }
+                }
+                focusAfterRender = null;
+            }
+        }
+        
+        function renderNodes(nodes, container, path, indexOffset = 0) {
+            let counters = { 'A.': 0, 'a.': 0, '1.': 0, 'a)': 0, '1)': 0 };
+
+            nodes.forEach((node, index) => {
+                const currentPath = [...path, index + indexOffset];
+                const currentPathStr = JSON.stringify(currentPath);
+
+                const row = document.createElement('div');
+                row.style.marginBottom = node.noMarginBottom ? '2px' : '12px';
+
+                if (node.type === 'BAB') {
+                    row.className = 'block-bab';
+                    const innerRow = document.createElement('div');
+                    innerRow.className = 'block-row';
+                    const badgeContainer = document.createElement('div');
+                    badgeContainer.className = 'type-badge-container';
+                    badgeContainer.innerHTML = `<div class="type-badge" onclick="openSelector(event, ${currentPathStr})">${getBadgeDisplay(node)}</div>`;
+                    innerRow.appendChild(badgeContainer);
+                    const contentArea = document.createElement('div');
+                    contentArea.className = 'block-content';
+                    contentArea.innerHTML = `<div class="flex-row">
+                        <div class="inner-marker" style="font-weight:bold;">${node.manualLabel || 'BAB'}</div>
+                        <div class="content-editable" contenteditable="true" data-path='${currentPathStr}' onblur="updateTitle(${currentPathStr}, this.innerText)" style="font-weight:bold;">${node.title}</div>
+                    </div>`;
+                    attachKeydownHandler(contentArea.querySelector('.content-editable'), currentPath);
+                    innerRow.appendChild(contentArea);
+                    row.appendChild(innerRow);
+                    if (node.children && node.children.length > 0) {
+                        const childrenDiv = document.createElement('div');
+                        childrenDiv.style.marginTop = '15px';
+                        renderNodes(node.children, childrenDiv, currentPath);
+                        row.appendChild(childrenDiv);
+                    }
+                    container.appendChild(row);
+                    return;
                 }
 
-                currentSection = {
-                    type: isManual ? "manual" : "A.",
-                    manualLabel: isManual ? label + " " : null,
-                    title: titleContent || label, 
-                    paragraphs: [],
-                    children: []
-                };
-                docData.children.push(currentSection);
-                currentPoint = null; 
-                currentSub = null;
-            }
-            // 2. Deteksi Level 2 (Poin Angka / 1.)
-            else if (rgxPoint.test(text)) {
-                if(!currentSection) { // Buat section dummy jika belum ada
-                    currentSection = { type: "A.", title: "Pendahuluan", paragraphs: [], children: [] };
-                    docData.children.push(currentSection);
-                }
-                const cleanTitle = text.replace(/^\s*\d+\.\s*/, '');
-                currentPoint = {
-                    type: "1.",
-                    title: cleanTitle,
-                    paragraphs: [],
-                    children: []
-                };
-                currentSection.children.push(currentPoint);
-                currentSub = null;
-            }
-            // 3. Deteksi Level 3 (Sub Poin / a) / - )
-            else if (rgxSub.test(text)) {
-                if(currentPoint) {
-                    const cleanTitle = text.replace(/^\s*([a-z]\)|[a-z]\.|-|•|○|●)\s*/, '');
-                    // Tentukan tipe bullet
-                    let type = "a)";
-                    if(text.trim().startsWith('-')) type = "dash";
-                    if(text.trim().startsWith('•')) type = "disc";
+                row.className = 'block-row';
 
-                    currentSub = {
-                        type: type,
-                        title: cleanTitle,
-                        paragraphs: [],
-                        children: []
-                    };
-                    currentPoint.children.push(currentSub);
-                } else if (currentSection) {
-                    // Jika ada bullet tapi tidak ada induk angka, masukkan sebagai poin angka saja
-                    currentPoint = { type: "1.", title: text.replace(/^[-\•]\s/,''), paragraphs: [], children: [] };
-                    currentSection.children.push(currentPoint);
+                if (node.restartNumbering) {
+                    counters[node.type] = 0;
                 }
+                let markerTxt = "";
+                if (['A.', 'a.', '1.', 'a)', '1)'].includes(node.type)) {
+                    counters[node.type]++;
+                    markerTxt = getMarkerValue(node.type, counters[node.type]);
+                } else if (node.type === 'bullet') markerTxt = "•";
+                else if (node.type === 'cube') markerTxt = "■";
+                else if (node.type === 'dash') markerTxt = "-";
+                else if (node.type === 'custom') markerTxt = node.manualLabel || "?";
+
+                const badgeContainer = document.createElement('div');
+                badgeContainer.className = 'type-badge-container';
+                badgeContainer.innerHTML = `<div class="type-badge" onclick="openSelector(event, ${currentPathStr})">${getBadgeDisplay(node)}</div>`;
+                row.appendChild(badgeContainer);
+                const contentArea = document.createElement('div');
+                contentArea.className = 'block-content';
+
+                if (node.type === 'paragraph') {
+                    const indentClass = (node.firstLineIndent !== false) ? 'content-paragraph' : '';
+                    contentArea.innerHTML = `<div class="content-editable ${indentClass}" contenteditable="true" data-path='${currentPathStr}' onblur="updateTitle(${currentPathStr}, this.innerText)">${node.title}</div>`;
+                    attachKeydownHandler(contentArea.querySelector('.content-editable'), currentPath);
+                } 
+                else if (node.type === 'image') {
+                    contentArea.innerHTML = `
+                        <div style="text-align:center; padding:10px; border:1px dashed var(--border-primary); background:var(--bg-main);">
+                            <img src="${node.url || 'https://via.placeholder.com/300?text=Klik+untuk+URL'}" style="max-width:100%; cursor:pointer;" onclick="editImage(${currentPathStr})">
+                            <div contenteditable="true" class="content-editable" data-path='${currentPathStr}' style="font-size:0.8em; color:var(--text-secondary); margin-top:5px;" onblur="updateTitle(${currentPathStr}, this.innerText)">${node.title}</div>
+                        </div>`;
+                }
+                else if (node.type === 'table') {
+                    renderTableNode(contentArea, node, currentPath);
+                }
+                else {
+                    const flexRow = document.createElement('div');
+                    flexRow.className = 'flex-row';
+                    flexRow.innerHTML = `
+                        <div class="inner-marker">${markerTxt}</div>
+                        <div class="content-editable" contenteditable="true" data-path='${currentPathStr}' onblur="updateTitle(${currentPathStr}, this.innerText)">${node.title}</div>
+                    `;
+                    attachKeydownHandler(flexRow.querySelector('.content-editable'), currentPath);
+                    contentArea.appendChild(flexRow);
+                }
+
+                if (node.children && node.children.length > 0) {
+                    const childrenDiv = document.createElement('div');
+                    childrenDiv.className = 'node-children';
+                    renderNodes(node.children, childrenDiv, currentPath);
+                    contentArea.appendChild(childrenDiv);
+                }
+
+                row.appendChild(contentArea);
+                container.appendChild(row);
+            });
+        }
+        
+        // --- LOGIC HELPERS ---
+        function getMarkerValue(type, n) {
+            if (type === 'A.') return String.fromCharCode(64 + n) + ".";
+            if (type === 'a.') return String.fromCharCode(96 + n) + ".";
+            if (type === 'a)') return String.fromCharCode(96 + n) + ")";
+            if (type === '1.') return n + ".";
+            if (type === '1)') return n + ")";
+            return "";
+        }
+
+        function getBadgeDisplay(node) {
+            if (node.type === 'custom') return node.manualLabel || 'Custom';
+            if (node.type === 'paragraph') return 'Paragraf';
+            if (node.type === 'BAB') return 'BAB';
+            return node.type;
+        }
+
+        function updateMargin(val) {
+            document.documentElement.style.setProperty('--indent-size', val + 'px');
+            document.getElementById('marginVal').innerText = val + 'px';
+        }
+
+        function attachKeydownHandler(element, path) {
+            element.onkeydown = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey && element.closest('.flex-row')) {
+                    e.preventDefault();
+                    addSibling(path, true);
+                }
+                // Tab indentation is now handled by the global handler
+            };
+        }
+
+        // --- TREE OPERATIONS ---
+        function findNode(path) {
+            if (!path || path.length === 0 || typeof path[0] === 'string') return null;
+            let curr = docData;
+            for (const idx of path) {
+                if (!curr.children || !curr.children[idx]) return null;
+                curr = curr.children[idx];
             }
-            // 4. Deteksi Paragraf (Tidak ada marker)
+            return curr;
+        }
+
+        function findParent(path) {
+            if (path.length <= 1) return docData;
+            let curr = docData;
+            for (let i = 0; i < path.length - 1; i++) {
+                curr = curr.children[path[i]];
+            }
+            return curr;
+        }
+
+        function updateTitle(path, text) {
+            const node = findNode(path);
+            if(node) node.title = text;
+        }
+
+        function addSibling(path, focusNew = false) {
+            const parent = findParent(path);
+            const idx = path[path.length - 1];
+            const siblingNode = parent.children[idx];
+            const newNode = { type: siblingNode.type, title: "", children: [] };
+            if (siblingNode.type === 'paragraph') {
+                newNode.firstLineIndent = siblingNode.firstLineIndent;
+            }
+            parent.children.splice(idx + 1, 0, newNode);
+            if (focusNew) {
+                const newPath = [...path.slice(0, -1), idx + 1];
+                focusAfterRender = { path: newPath, start: 0, end: 0 };
+            }
+            render();
+        }
+        
+        function addRootNode() {
+            docData.children.push({ type: 'BAB', manualLabel: "BAB BARU", title: "JUDUL BAB", children: [] });
+            render();
+        }
+
+        function addChild(path, focusNew = false) {
+            const node = findNode(path);
+            if (!node) return;
+            if (!node.children) node.children = [];
+            const indentHierarchy = { 'BAB': 'A.', 'A.': '1.', '1.': 'a.', 'a.': 'bullet' };
+            let nextType = indentHierarchy[node.type] || "dash";
+            node.children.push({ type: nextType, title: "", children: [] });
+
+            if (focusNew) {
+                const newPath = [...path, node.children.length - 1];
+                focusAfterRender = { path: newPath, start: 0, end: 0 };
+            }
+            render();
+        }
+
+        function removeNode(path, focusNext = false) {
+            const parent = findParent(path);
+            const index = path[path.length - 1];
+            
+            if (focusNext) {
+                let nextFocusPath = null;
+                if (index > 0) {
+                    nextFocusPath = [...path.slice(0, -1), index - 1];
+                } else if (parent.children.length > 1) { 
+                    nextFocusPath = [...path.slice(0, -1), index];
+                } else if (path.length > 1) {
+                    nextFocusPath = path.slice(0, -1);
+                }
+                focusAfterRender = { path: nextFocusPath, start: -1, end: -1 };
+            }
+
+            parent.children.splice(index, 1);
+            render();
+        }
+
+        // --- POPUP & MODAL ACTIONS ---
+        function openSelector(e, path) {
+            e.stopPropagation();
+            activePath = path;
+            
+            const sel = document.getElementById('typeSelector');
+            const normalActions = document.getElementById('normalActions');
+            const pasteActions = document.getElementById('pasteActions');
+
+            if (copiedFormat) {
+                normalActions.style.display = 'none';
+                pasteActions.style.display = 'block';
+            } else {
+                normalActions.style.display = 'block';
+                pasteActions.style.display = 'none';
+
+                const node = findNode(path);
+                const index = path[path.length - 1];
+                
+                const canIndent = index > 0;
+                document.getElementById('actionIndent').style.display = canIndent ? 'flex' : 'none';
+                
+                const canOutdent = path.length > 1;
+                document.getElementById('actionOutdent').style.display = canOutdent ? 'flex' : 'none';
+
+                const isListType = ['A.', 'a.', '1.', 'a)', '1)'].includes(node.type);
+                document.getElementById('actionRestart').style.display = isListType ? 'flex' : 'none';
+
+                const isParagraph = node.type === 'paragraph';
+                document.getElementById('actionParagraphIndent').style.display = isParagraph ? 'flex' : 'none';
+
+                document.getElementById('actionMargin').style.display = 'flex'; // Show for all
+
+                const separator = document.getElementById('actionSeparator');
+                separator.style.display = 'block';
+            }
+
+            sel.style.display = 'block';
+            sel.style.top = e.clientY + 'px';
+            sel.style.left = (e.clientX - 120) + 'px';
+        }
+
+        function handleSelectorAction(action) {
+            if (!activePath) return;
+            if (action === 'addSibling') addSibling(activePath, true);
+            else if (action === 'addChild') addChild(activePath, true);
+            else if (action === 'removeNode') removeNode(activePath, true);
+            document.getElementById('typeSelector').style.display = 'none';
+        }
+
+        function setBlockType(type) {
+            const node = findNode(activePath);
+            document.getElementById('typeSelector').style.display = 'none';
+            if (type === 'custom' || type === 'BAB') {
+                document.getElementById('customModalTitle').innerText = type === 'BAB' ? 'Label BAB' : 'Label Custom';
+                document.getElementById('customInput').value = node.manualLabel || '';
+                openModal('customModal');
+                document.getElementById('customModal').dataset.type = type;
+            } else if (type === 'table') {
+                openModal('tableCreationModal');
+            }
             else {
-                if (currentSub) {
-                    currentSub.paragraphs.push(text);
-                } else if (currentPoint) {
-                    currentPoint.paragraphs.push(text);
-                } else if (currentSection) {
-                    // Cek apakah ini judul lanjutan atau paragraf intro
-                    // Asumsi paragraf intro section
-                    // Buat dummy point "Deskripsi" jika struktur ketat, atau masukkan ke child pertama
-                    if(currentSection.children.length === 0) {
-                         // Belum ada poin, anggap ini deskripsi bab, bisa kita masukkan ke paragraf dummy
-                         // Tapi karena struktur data kita Section -> Point -> Paragraph
-                         // Kita buat Poin dummy "Intro"
-                         let dummy = {type: "dash", title: "Deskripsi", paragraphs: [text], children: []};
-                         currentSection.children.push(dummy);
-                         currentPoint = dummy;
+                node.type = type;
+                render();
+            }
+        }
+        
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        function applyCustomLabel() {
+            const node = findNode(activePath);
+            const type = document.getElementById('customModal').dataset.type;
+            node.type = type;
+            node.manualLabel = document.getElementById('customInput').value;
+            closeModal('customModal');
+            render();
+        }
+
+        function editImage(path) {
+            const url = prompt("Masukkan URL Gambar:", findNode(path).url || "");
+            if(url) { findNode(path).url = url; render(); }
+        }
+        
+        // --- NEW SETTINGS & FORMATTING LOGIC ---
+        function setFontSize(size) {
+            if (!docData.settings) docData.settings = {};
+            docData.settings.fontSize = parseInt(size) || 12;
+            render();
+        }
+
+        function setPageLayout(layout) {
+             if (!docData.settings) docData.settings = {};
+            docData.settings.layout = layout;
+            render();
+        }
+
+        function toggleSplitView() {
+            if (!docData.settings) docData.settings = {};
+            docData.settings.splitMode = !docData.settings.splitMode;
+            render();
+        }
+
+        function toggleMarginBottom(path = activePath) {
+            const node = findNode(path);
+            if(node) node.noMarginBottom = !node.noMarginBottom;
+            document.getElementById('typeSelector').style.display = 'none';
+            render();
+        }
+
+
+        // --- FORMATTING & HIERARCHY LOGIC ---
+        function copyFormat() {
+            const node = findNode(activePath);
+            if (!node) return;
+            copiedFormat = {
+                type: node.type,
+                manualLabel: node.manualLabel
+            };
+            document.getElementById('typeSelector').style.display = 'none';
+        }
+        
+        function pasteFormat() {
+            if (!copiedFormat || !activePath) return;
+            const targetNode = findNode(activePath);
+            if (!targetNode) return;
+            targetNode.type = copiedFormat.type;
+            if (copiedFormat.manualLabel) {
+                targetNode.manualLabel = copiedFormat.manualLabel;
+            }
+            cancelPasteFormat();
+            render();
+        }
+        
+        function cancelPasteFormat() {
+            copiedFormat = null;
+            document.getElementById('typeSelector').style.display = 'none';
+        }
+
+        function toggleRestartNumbering() {
+            const node = findNode(activePath);
+            if(node) node.restartNumbering = !node.restartNumbering;
+            document.getElementById('typeSelector').style.display = 'none';
+            render();
+        }
+
+        function toggleParagraphIndent() {
+            const node = findNode(activePath);
+            if(node && node.type === 'paragraph') {
+                node.firstLineIndent = !(node.firstLineIndent !== false);
+            }
+            document.getElementById('typeSelector').style.display = 'none';
+            render();
+        }
+
+        function indentNode(path = activePath) {
+            document.getElementById('typeSelector').style.display = 'none';
+            if (!path || path.length === 0) return;
+            const index = path[path.length - 1];
+            if (index === 0) return;
+
+            const parent = findParent(path);
+            const prevSibling = parent.children[index - 1];
+            if (!prevSibling) return;
+            
+            const [nodeToMove] = parent.children.splice(index, 1);
+            if (!prevSibling.children) prevSibling.children = [];
+            prevSibling.children.push(nodeToMove);
+            
+            const indentHierarchy = { 'BAB': 'A.', 'A.': '1.', '1.': 'a.', 'a.': 'bullet' };
+            const newType = indentHierarchy[prevSibling.type];
+            if (newType && nodeToMove.type !== newType) {
+                nodeToMove.type = newType;
+            }
+            render();
+        }
+
+        function outdentNode(path = activePath) {
+            document.getElementById('typeSelector').style.display = 'none';
+            if (!path || path.length <= 1) return; 
+
+            const parent = findParent(path);
+            const grandparent = findParent(path.slice(0, -1));
+            if (!grandparent) return;
+
+            const childIndex = path[path.length - 1];
+            const parentIndex = path[path.length - 2];
+            
+            const [nodeToMove] = parent.children.splice(childIndex, 1);
+            grandparent.children.splice(parentIndex + 1, 0, nodeToMove);
+            
+            const outdentHierarchy = { 'A.': 'BAB', '1.': 'A.', 'a.': '1.', 'bullet': 'a.' };
+            const newType = outdentHierarchy[nodeToMove.type];
+             if (newType && parent.type !== newType) {
+                const grandparentType = grandparent === docData ? null : grandparent.type;
+                if(grandparentType === null && newType === 'BAB') nodeToMove.type = newType;
+                if(grandparentType === 'BAB' && newType === 'A.') nodeToMove.type = newType;
+            }
+            render();
+        }
+
+        // --- SMART PASTE ---
+        function processSmartPaste() {
+            const raw = document.getElementById('rawPasteArea').value;
+            const lines = raw.split('\n');
+            let newNodes = [];
+
+            lines.forEach(line => {
+                let text = line.trim();
+                if (!text) return;
+                let type = "paragraph";
+                if (/^BAB\s/i.test(text)) type = "BAB";
+                else if (/^[A-Z]\./.test(text)) type = "A.";
+                else if (/^\d+\./.test(text)) type = "1.";
+                else if (/^[a-z]\./.test(text)) type = "a.";
+                else if (/^\-/.test(text)) type = "dash";
+                
+                let cleanText = text.replace(/^[A-Z]\.\s?|^\d+\.\s?|^[a-z]\.\s?|^\-\s?/, "");
+                
+                const newNode = { type: type, title: cleanText, children: [] };
+                if (type === 'BAB') {
+                    const match = text.match(/^(BAB\s+[IVXLCDM]+)/i);
+                    if (match) {
+                        newNode.manualLabel = match[1].toUpperCase();
+                        newNode.title = text.replace(match[1], '').trim();
+                    }
+                }
+                newNodes.push(newNode);
+            });
+
+            docData.children = [...docData.children, ...newNodes];
+            render();
+            closeModal('pasteModal');
+        }
+
+        // --- FILE MGMT ---
+        function saveJson() {
+            const blob = new Blob([JSON.stringify(docData, null, 2)], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = document.getElementById('docFilename').value + ".json";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function handleFileImport(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            if (file.name.endsWith('.docx')) {
+                reader.onload = (e) => mammoth.extractRawText({arrayBuffer: e.target.result}).then(r => {
+                    document.getElementById('rawPasteArea').value = r.value;
+                    openModal('pasteModal');
+                });
+                reader.readAsArrayBuffer(file);
+            } else {
+                reader.onload = (e) => { 
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if(data && data.title && Array.isArray(data.children)) {
+                            docData = data;
+                            // Ensure settings object exists for backwards compatibility
+                            docData.settings = {
+                                fontSize: 12, layout: 'portrait', splitMode: false,
+                                ...(docData.settings || {})
+                            };
+                            render();
+                        } else { alert('Format JSON tidak valid.'); }
+                    } catch (err) { alert('Gagal mem-parsing file JSON.'); console.error(err); }
+                };
+                reader.readAsText(file);
+            }
+            input.value = '';
+        }
+
+        function createNew() { 
+            if(confirm("Semua konten saat ini akan dihapus. Lanjutkan?")) { 
+                docData.title = "JUDUL BARU";
+                docData.desc = "Deskripsi baru";
+                docData.children = []; 
+                docData.settings = { fontSize: 12, layout: 'portrait', splitMode: false };
+                render(); 
+            } 
+        }
+
+        // --- TABLE RENDER & LOGIC ---
+
+        function renderTableNode(container, node, path) {
+            if (!node.tableData) {
+                node.tableData = { rows: Array(2).fill(0).map(() => Array(2).fill(0).map(() => ({ content: '', colspan: 1, rowspan: 1, merged: false }))) };
+            }
+            
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'table-container';
+            
+            const table = document.createElement('table');
+            table.style.width = '100%';
+            table.style.borderCollapse = 'collapse';
+            table.onmouseleave = () => { if(isSelectingForTable) handleDocMouseUp(); };
+            
+            const tbody = document.createElement('tbody');
+            node.tableData.rows.forEach((row, r_idx) => {
+                const tr = document.createElement('tr');
+                row.forEach((cell, c_idx) => {
+                    if (cell.merged) return;
+
+                    const td = document.createElement('td');
+                    td.dataset.row = r_idx;
+                    td.dataset.col = c_idx;
+                    td.colSpan = cell.colspan || 1;
+                    td.rowSpan = cell.rowspan || 1;
+                    td.style.border = '1px solid var(--border-primary)';
+                    td.style.minWidth = '40px';
+                    
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'content-editable';
+                    contentDiv.innerText = cell.content || '';
+                    contentDiv.contentEditable = true;
+                    contentDiv.onblur = () => { findNode(path).tableData.rows[r_idx][c_idx].content = contentDiv.innerText; };
+                    td.appendChild(contentDiv);
+
+                    td.onmousedown = (e) => handleCellMouseDown(e, path, r_idx, c_idx);
+                    td.onmouseover = (e) => handleCellMouseOver(r_idx, c_idx);
+                    td.oncontextmenu = (e) => handleCellContextMenu(e, path, r_idx, c_idx);
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            tableContainer.appendChild(table);
+            container.appendChild(tableContainer);
+        }
+
+        function applyTableCreation() {
+            const rows = parseInt(document.getElementById('tableRows').value) || 2;
+            const cols = parseInt(document.getElementById('tableCols').value) || 2;
+            const node = findNode(activePath);
+            
+            node.type = 'table';
+            node.tableData = {
+                rows: Array(rows).fill(0).map(() => 
+                    Array(cols).fill(0).map(() => ({ content: '', colspan: 1, rowspan: 1, merged: false }))
+                )
+            };
+            
+            closeModal('tableCreationModal');
+            render();
+        }
+        
+        function addTableRow(isAbove) {
+            const { path, cell: { r } } = activeTableContext;
+            const node = findNode(path);
+            const cols = node.tableData.rows[0].length;
+            const newRow = Array(cols).fill(0).map(() => ({ content: '', colspan: 1, rowspan: 1, merged: false }));
+            const insertIndex = isAbove ? r : r + 1;
+            node.tableData.rows.splice(insertIndex, 0, newRow);
+            render();
+        }
+        
+        function deleteTableRow() {
+            const { path, cell: { r } } = activeTableContext;
+            const node = findNode(path);
+            if (node.tableData.rows.length > 1) {
+                node.tableData.rows.splice(r, 1);
+                render();
+            }
+        }
+        
+        function addTableColumn(isLeft) {
+            const { path, cell: { c } } = activeTableContext;
+            const node = findNode(path);
+            const insertIndex = isLeft ? c : c + 1;
+            node.tableData.rows.forEach(row => {
+                row.splice(insertIndex, 0, { content: '', colspan: 1, rowspan: 1, merged: false });
+            });
+            render();
+        }
+
+        function deleteTableColumn() {
+            const { path, cell: { c } } = activeTableContext;
+            const node = findNode(path);
+            if (node.tableData.rows[0].length > 1) {
+                node.tableData.rows.forEach(row => row.splice(c, 1));
+                render();
+            }
+        }
+
+        function handleCellMouseDown(e, path, r, c) {
+            if (e.button !== 0) return; // Only left click
+            e.preventDefault();
+            isSelectingForTable = true;
+            clearTableSelection();
+            tableSelection = { path, start: {r,c}, end: {r,c} };
+            updateSelectionHighlight();
+            document.addEventListener('mouseup', handleDocMouseUp, { once: true });
+        }
+
+        function handleCellMouseOver(r, c) {
+            if (!isSelectingForTable) return;
+            tableSelection.end = {r,c};
+            updateSelectionHighlight();
+        }
+
+        function handleDocMouseUp() {
+            isSelectingForTable = false;
+        }
+
+        function clearTableSelection() {
+            tableSelection = { path: null, start: null, end: null };
+            document.querySelectorAll('.table-container td.selected').forEach(td => td.classList.remove('selected'));
+        }
+
+        function updateSelectionHighlight() {
+            document.querySelectorAll('.table-container td').forEach(td => td.classList.remove('selected'));
+            if (!tableSelection.start) return;
+            
+            const bounds = getSelectionBounds();
+            for (let r = bounds.minR; r <= bounds.maxR; r++) {
+                for (let c = bounds.minC; c <= bounds.maxC; c++) {
+                    const cellEl = document.querySelector(`td[data-row='${r}'][data-col='${c}']`);
+                    if (cellEl) cellEl.classList.add('selected');
+                }
+            }
+        }
+        
+        function getSelectionBounds() {
+            const { start, end } = tableSelection;
+            if (!start || !end) return { minR: -1, maxR: -1, minC: -1, maxC: -1 };
+            const minR = Math.min(start.r, end.r);
+            const maxR = Math.max(start.r, end.r);
+            const minC = Math.min(start.c, end.c);
+            const maxC = Math.max(start.c, end.c);
+            return { minR, maxR, minC, maxC };
+        }
+
+        function handleCellContextMenu(e, path, r, c) {
+            e.preventDefault();
+            activeTableContext = { path, cell: {r,c} };
+            const menu = document.getElementById('tableContextMenu');
+            const node = findNode(path);
+            const cellData = node.tableData.rows[r][c];
+
+            const bounds = getSelectionBounds();
+            const selectionSize = (bounds.maxR - bounds.minR + 1) * (bounds.maxC - bounds.minC + 1);
+
+            document.getElementById('mergeBtn').toggleAttribute('disabled', selectionSize <= 1);
+            document.getElementById('splitBtn').toggleAttribute('disabled', cellData.colspan <= 1 && cellData.rowspan <= 1);
+
+            menu.style.display = 'block';
+            menu.style.top = e.clientY + 'px';
+            menu.style.left = e.clientX + 'px';
+        }
+
+        function mergeSelectedCells() {
+            if (!tableSelection.path) return;
+            const bounds = getSelectionBounds();
+            if ((bounds.maxR === bounds.minR) && (bounds.maxC === bounds.minC)) return; // Single cell selected
+
+            const node = findNode(tableSelection.path);
+            const newColspan = bounds.maxC - bounds.minC + 1;
+            const newRowspan = bounds.maxR - bounds.minR + 1;
+
+            let combinedContent = '';
+            for (let r = bounds.minR; r <= bounds.maxR; r++) {
+                for (let c = bounds.minC; c <= bounds.maxC; c++) {
+                    const cell = node.tableData.rows[r][c];
+                    if (cell.content) combinedContent += cell.content + ' ';
+                    if (r === bounds.minR && c === bounds.minC) {
+                        cell.colspan = newColspan;
+                        cell.rowspan = newRowspan;
+                        cell.merged = false;
                     } else {
-                        // Sudah ada poin, masukkan ke poin terakhir
-                        currentSection.children[currentSection.children.length-1].paragraphs.push(text);
+                        cell.content = '';
+                        cell.colspan = 1;
+                        cell.rowspan = 1;
+                        cell.merged = true;
                     }
                 }
             }
-        });
-
-        render();
-        closePasteModal();
-    }
-
-    // --- File Handling ---
-    function downloadJson() {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([JSON.stringify(docData, null, 2)], {type: "application/json"}));
-        a.download = (document.getElementById('filename').value || "materi") + ".json";
-        a.click();
-    }
-    function createNew() { if(confirm("Data hilang?")) { docData = { title: "JUDUL BARU", desc: "...", children: [] }; render(); } }
-    
-    function handleFile(input) {
-        const file = input.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        if (file.name.endsWith('.docx')) {
-            reader.onload = (e) => mammoth.extractRawText({arrayBuffer: e.target.result}).then(r => {
-                document.getElementById('rawTextInput').value = r.value;
-                openPasteModal(); // Buka modal biar user lihat hasil extract dulu
-            });
-            reader.readAsArrayBuffer(file);
-        } else {
-            reader.onload = (e) => { docData = JSON.parse(e.target.result); render(); };
-            reader.readAsText(file);
+            node.tableData.rows[bounds.minR][bounds.minC].content = combinedContent.trim();
+            clearTableSelection();
+            render();
         }
-    }
 
-    // Init
-    render();
-</script>
+        function splitSelectedCell() {
+            if (!activeTableContext.path) return;
+            const { path, cell: {r,c} } = activeTableContext;
+            const node = findNode(path);
+            const targetCell = node.tableData.rows[r][c];
+            const { colspan, rowspan } = targetCell;
+
+            if (colspan <= 1 && rowspan <= 1) return;
+
+            for (let i = r; i < r + rowspan; i++) {
+                for (let j = c; j < c + colspan; j++) {
+                    const cell = node.tableData.rows[i][j];
+                    cell.colspan = 1;
+                    cell.rowspan = 1;
+                    cell.merged = false;
+                }
+            }
+            render();
+        }
+
+        // --- SHORTCUT MANAGEMENT ---
+        function loadShortcuts() {
+            try {
+                const savedShortcuts = localStorage.getItem('materiAppShortcuts');
+                if (savedShortcuts) {
+                    shortcuts = JSON.parse(savedShortcuts);
+                    Object.keys(defaultShortcuts).forEach(key => {
+                        if (!shortcuts[key]) shortcuts[key] = defaultShortcuts[key];
+                    });
+                } else {
+                    shortcuts = JSON.parse(JSON.stringify(defaultShortcuts));
+                }
+            } catch (e) {
+                console.error("Could not load shortcuts, using defaults.", e);
+                shortcuts = JSON.parse(JSON.stringify(defaultShortcuts));
+            }
+        }
+
+        function formatShortcut(shortcutObj) {
+            if (!shortcutObj || !shortcutObj.key) return "Tidak diatur";
+            let parts = [];
+            if (shortcutObj.ctrlKey) parts.push('Ctrl');
+            if (shortcutObj.altKey) parts.push('Alt');
+            if (shortcutObj.shiftKey) parts.push('Shift');
+            
+            let keyDisplay = shortcutObj.key;
+            if (keyDisplay === ' ') keyDisplay = 'Space';
+            else keyDisplay = keyDisplay.charAt(0).toUpperCase() + keyDisplay.slice(1);
+
+            parts.push(keyDisplay);
+            return parts.join(' + ');
+        }
+
+        function openShortcutModal() {
+            tempShortcuts = JSON.parse(JSON.stringify(shortcuts));
+            const listEl = document.getElementById('shortcutList');
+            listEl.innerHTML = '';
+            
+            Object.keys(tempShortcuts).forEach(action => {
+                const label = shortcutLabels[action] || action;
+                const shortcutString = formatShortcut(tempShortcuts[action]);
+                const itemEl = document.createElement('div');
+                itemEl.style.display = 'flex';
+                itemEl.style.justifyContent = 'space-between';
+                itemEl.style.alignItems = 'center';
+                itemEl.style.padding = '8px 0';
+                itemEl.style.borderBottom = '1px solid var(--border-secondary)';
+                
+                itemEl.innerHTML = `
+                    <span>${label}</span>
+                    <input type="text" readonly value="${shortcutString}" data-action="${action}" style="width: 200px; text-align: center; cursor: pointer; background-color: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border-primary); padding: 5px;">
+                `;
+                listEl.appendChild(itemEl);
+            });
+
+            listEl.querySelectorAll('input').forEach(input => {
+                input.onkeydown = (e) => recordShortcut(e, input.dataset.action);
+                input.onfocus = () => { input.value = "Menekan tombol..."; };
+                input.onblur = () => { input.value = formatShortcut(tempShortcuts[input.dataset.action]); };
+            });
+
+            openModal('shortcutModal');
+        }
+
+        function recordShortcut(event, action) {
+            event.preventDefault();
+            event.stopPropagation();
+            const targetInput = document.querySelector(`#shortcutList input[data-action="${action}"]`);
+            if (!targetInput) return;
+            if (['Control', 'Shift', 'Alt', 'Meta'].includes(event.key)) {
+                targetInput.value = "Menekan tombol...";
+                return;
+            }
+            const newShortcut = {
+                ctrlKey: event.ctrlKey,
+                shiftKey: event.shiftKey,
+                altKey: event.altKey,
+                key: event.key
+            };
+            tempShortcuts[action] = newShortcut;
+            targetInput.value = formatShortcut(newShortcut);
+        }
+
+        function saveCustomShortcuts() {
+            shortcuts = JSON.parse(JSON.stringify(tempShortcuts));
+            try {
+                localStorage.setItem('materiAppShortcuts', JSON.stringify(shortcuts));
+            } catch (e) {
+                console.error("Failed to save shortcuts.", e);
+                alert("Gagal menyimpan pintasan.");
+            }
+            closeModal('shortcutModal');
+        }
+
+        function resetShortcutsToDefault() {
+            if (confirm("Apakah Anda yakin ingin mereset semua pintasan ke pengaturan default?")) {
+                tempShortcuts = JSON.parse(JSON.stringify(defaultShortcuts));
+                Object.keys(tempShortcuts).forEach(action => {
+                    const input = document.querySelector(`#shortcutList input[data-action="${action}"]`);
+                    if (input) input.value = formatShortcut(tempShortcuts[action]);
+                });
+            }
+        }
+
+
+        // --- GLOBAL EVENT LISTENERS ---
+        function setFocusAfterRender(path) {
+            const selection = window.getSelection();
+            focusAfterRender = {
+                path: path,
+                start: selection.anchorOffset,
+                end: selection.focusOffset
+            };
+        }
+
+        function checkShortcut(event, actionName) {
+            const expected = shortcuts[actionName];
+            if (!expected) return false;
+            return event.key.toLowerCase() === expected.key.toLowerCase() &&
+                   event.ctrlKey === expected.ctrlKey &&
+                   event.shiftKey === expected.shiftKey &&
+                   event.altKey === expected.altKey;
+        }
+
+        function handleGlobalShortcuts(e) {
+            const activeEl = document.activeElement;
+            if (!activeEl || !activeEl.classList.contains('content-editable')) return;
+            
+            const pathStr = activeEl.dataset.path;
+            if (!pathStr) return;
+
+            const path = JSON.parse(pathStr);
+
+            if (checkShortcut(e, 'indent')) {
+                e.preventDefault();
+                setFocusAfterRender(path);
+                indentNode(path);
+            } else if (checkShortcut(e, 'outdent')) {
+                e.preventDefault();
+                setFocusAfterRender(path);
+                outdentNode(path);
+            } else if (checkShortcut(e, 'deleteNode')) {
+                if (activeEl.innerText.trim() === '') {
+                    e.preventDefault();
+                    removeNode(path, true);
+                }
+            } else if (checkShortcut(e, 'toggleMargin')) {
+                e.preventDefault();
+                setFocusAfterRender(path);
+                toggleMarginBottom(path);
+            } else if (checkShortcut(e, 'addSibling')) {
+                e.preventDefault();
+                addSibling(path, true);
+            } else if (checkShortcut(e, 'addChild')) {
+                e.preventDefault();
+                addChild(path, true);
+            }
+        }
+
+        window.addEventListener('keydown', handleGlobalShortcuts);
+
+        window.onclick = (e) => {
+            if(!e.target.closest('.type-badge') && !e.target.closest('.type-selector')) {
+                document.getElementById('typeSelector').style.display = 'none';
+                if (copiedFormat) cancelPasteFormat();
+            }
+             if(!e.target.closest('.table-container') && !e.target.closest('#tableContextMenu')) {
+                document.getElementById('tableContextMenu').style.display = 'none';
+            }
+        }
+        window.onkeyup = (e) => { 
+            if (e.key === "Escape") {
+                closeModal('pasteModal');
+                closeModal('customModal');
+                closeModal('tableCreationModal');
+                closeModal('shortcutModal');
+                if (copiedFormat) cancelPasteFormat();
+            }
+        };
+
+        // --- Init ---
+        loadShortcuts();
+        render();
+
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
 </body>
 </html>
