@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalkulator Korelasi Ganda (X1, X2, Y)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
     <style>
         /* CSS Khusus untuk Menulis Rumus Matematika tanpa MathJax */
         .math-container {
@@ -70,17 +71,14 @@
     </style>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800 pb-20">
-<nav class="w-full md:w-64 bg-gray-800 text-white flex-shrink-0">
-            <div class="px-6 py-5 text-2xl font-bold border-b border-gray-700">
-                My Tools
-            </div>
-            <div>
-                <a href="index.html" class="block px-6 py-3 text-sm font-medium text-gray-300 border-l-4 border-transparent hover:bg-gray-700 hover:text-white transition-colors duration-200">Advanced Cleaner</a>
-                <a href="TextCleaner.html" class="block px-6 py-3 text-sm font-medium text-gray-300 border-l-4 border-transparent hover:bg-gray-700 hover:text-white transition-colors duration-200">Quote Cleaner</a>
-                <a href="PearsonProductMomentV3.html" class="block px-6 py-3 text-sm font-medium bg-blue-600 text-white border-l-4 border-blue-400 transition-colors duration-200">Pearson Calculator</a>
-                <a href="korelasiGanda.html" class="block px-6 py-3 text-sm font-medium bg-blue-600 text-white border-l-4 border-blue-400 transition-colors duration-200">Korelasi Ganda</a>
-            </div>
-</nav>
+<nav id="sidebar">
+        <div class="brand">My Tools</div>
+        <a href="index.html" class="nav-link">Advanced Cleaner</a>
+        <a href="TextCleaner.html" class="nav-link">Quote Cleaner</a>
+        <a href="materiApp.html" class="nav-link">materi App</a>
+        <a href="PearsonProductMomentV3.html" class="nav-link">Pearson Calculator</a>
+        <a href="korelasiGanda.html" class="nav-link active">Korelasi Ganda</a>
+    </nav>
 <div class="max-w-6xl mx-auto p-4 md:p-8">
     
     <div class="bg-white p-6 rounded-xl shadow-md mb-6 border-l-8 border-blue-600">

@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Materi App & JSON Builder</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        :root {
+            /* Fallback jika var sidebar belum didefinisikan di style.css */
+            --bg-color: #f4f7f6;
+            --paper-width: 210mm;
+            --sidebar-width: 250px; 
+        }
+
+        /* --- LAYOUT UTAMA --- */
+        body {
+            overflow: hidden; /* Mencegah double scrollbar */
+        }
+
+        /* Main Content Area (Sebelah kanan Sidebar) */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #e5e5e5;
+        }
+
+        /* Toolbar di atas kertas */
+        .toolbar {
+            background: white;
+            padding: 10px 20px;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        /* Area Scroll Kertas */
+        .paper-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Kertas A4 */
+        .paper {
+            width: var(--paper-width);
+            min-height: 297mm;
+            background: white;
+            padding: 20mm 25mm; /* Margin standar */
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            color: #333;
+            font-family: 'Times New Roman', Times, serif; /* Font akademis */
+            line-height: 1.5;
+            position: relative;
+        }
+
+        /* --- STRUKTUR ITEM (Flexbox Nesting) --- */
+        
+        /* Wadah per item (Judul + Konten) */
+        .node-wrapper {
+            display: flex;
+            flex-direction: row;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        /* Kolom Penomoran (A., 1., dll) */
+        .node-marker {
+            min-width: 35px; /* Lebar tetap agar sejajar vertikal */
+            font-weight: bold;
+            flex-shrink: 0;
+            cursor: pointer; /* Klik untuk ubah tipe */
+            user-select: none;
+        }
+        
+        .node-marker:hover { color: blue; text-decoration: underline; }
+
+        /* Kolom Konten (Judul, Paragraf, Anak) */
+        .node-content-col {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Judul Item */
+        .node-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            outline: none;
+        }
+
+        /* Paragraf */
+        .node-paragraph {
+            text-align: justify;
+            margin-bottom: 8px;
+            text-indent: 40px; /* Menjorok baris pertama */
+            outline: none;
+        }
+
+        /* Container Anak (Sub-points) */
+        /* Ini kuncinya: Anak ada DI DALAM kolom konten orang tua */
+        .node-children {
+            margin-top: 5px;
+            /* Tidak perlu margin-left karena sudah di dalam flex column */
+        }
+
+        /* --- VISUAL HELPERS --- */
+        [contenteditable="true"]:hover {
+            background-color: rgba(255, 255, 0, 0.1);
+            border-radius: 3px;
+        }
+        [contenteditable="true"]:focus {
+            background-color: rgba(255, 255, 0, 0.2);
+            outline: 2px solid #3498db;
+        }
+
+        /* Controls (Hapus/Tambah) yang muncul saat hover */
+        .hover-controls {
+            opacity: 0;
+            transition: opacity 0.2s;
+            margin-left: 10px;
+            display: inline-flex;
+            gap: 2px;
+        }
+        .node-wrapper:hover > .node-content-col > .node-title .hover-controls { opacity: 1; }
+
+        .btn-mini {
+            font-size: 10px;
+            padding: 2px 5px;
+            border: 1px solid #ccc;
+            background: #eee;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .btn-mini:hover { background: #ddd; }
+        .btn-del { color: red; border-color: #ffcccc; background: #fff5f5; }
+
+        /* Dialog/Modal kecil untuk ganti tipe list */
+        .marker-selector {
+            position: absolute;
+            background: white;
+            border: 1px solid #999;
+            padding: 5px;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+            z-index: 100;
+            display: none;
+            border-radius: 4px;
+            font-family: sans-serif;
+            font-size: 12px;
+        }
+        .marker-option {
+            padding: 4px 8px;
+            cursor: pointer;
+            display: block;
+        }
+        .marker-option:hover { background-color: #eee; }
+        .marker-input {
+            width: 80px; padding: 3px; margin-top: 5px;
+        }
+
+        /* Styling Judul Dokumen Utama */
+        .main-doc-title { text-align: center; font-size: 16pt; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
+        .main-doc-desc { text-align: center; font-size: 12pt; margin-bottom: 30px; font-style: italic; }
+
+        /* Styles UI Toolbar */
+        .btn { padding: 8px 12px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 4px; display: flex; align-items: center; gap: 5px; font-size: 0.9rem;}
+        .btn-outline { background: white; color: #333; border: 1px solid #ccc; }
+        .btn-outline:hover { background: #f0f0f0; }
+
+        @media print {
+            #sidebar, .toolbar, .hover-controls { display: none !important; }
+            .paper-container { padding: 0; background: white; height: auto; display: block; }
+            .paper { box-shadow: none; width: 100%; margin: 0; padding: 0; }
+            .main-content { height: auto; overflow: visible; }
+            body { overflow: visible; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav id="sidebar">
+        <div class="brand">My Tools</div>
+        <a href="index.html" class="nav-link">Advanced Cleaner</a>
+        <a href="TextCleaner.html" class="nav-link">Quote Cleaner</a>
+        <a href="materiApp.html" class="nav-link active">Materi App</a>
+        <a href="PearsonProductMomentV3.html" class="nav-link">Pearson Calculator</a>
+        <a href="korelasiGanda.html" class="nav-link">Korelasi Ganda</a>
+
+        <div style="padding: 15px; border-top: 1px solid #444; margin-top: auto;">
+            <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 5px;">File Manager</div>
+            <button class="btn btn-outline" style="width:100%; margin-bottom:5px; justify-content:center; background:#444; color:white; border:none;" onclick="createNew()"><i class="fas fa-file"></i> Baru</button>
+            <input type="file" id="docxInput" accept=".docx,.json" style="display: none;" onchange="handleFile(this)">
+            <button class="btn btn-outline" style="width:100%; margin-bottom:5px; justify-content:center; background:#444; color:white; border:none;" onclick="document.getElementById('docxInput').click()"><i class="fas fa-folder-open"></i> Import</button>
+            <button class="btn btn-outline" style="width:100%; justify-content:center; background:#444; color:white; border:none;" onclick="downloadJson()"><i class="fas fa-download"></i> Save JSON</button>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="toolbar">
+            <input type="text" id="filename" value="Materi_Baru" style="padding: 5px; font-weight: bold;">
+            <div style="flex-grow:1"></div>
+            <button class="btn btn-outline" onclick="addRootNode()"><i class="fas fa-plus"></i> Tambah Bab Utama</button>
+            <button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> PDF/Print</button>
+        </div>
+
+        <div class="paper-container">
+            <div class="paper" id="paper">
+                </div>
+        </div>
+    </div>
+
+    <div id="markerSelector" class="marker-selector">
+        <div class="marker-option" onclick="applyMarker('A.')">A. B. C. (Huruf Kapital)</div>
+        <div class="marker-option" onclick="applyMarker('1.')">1. 2. 3. (Angka)</div>
+        <div class="marker-option" onclick="applyMarker('a)')">a) b) c) (Huruf Kecil)</div>
+        <div class="marker-option" onclick="applyMarker('circle')">○ (Lingkaran)</div>
+        <div class="marker-option" onclick="applyMarker('disc')">● (Bulat Penuh)</div>
+        <div class="marker-option" onclick="applyMarker('dash')">- (Strip)</div>
+        <hr style="margin: 2px 0;">
+        <div style="padding: 4px;">
+            <small>Custom / Manual:</small><br>
+            <input type="text" id="customMarkerInput" class="marker-input" placeholder="Mis: Pert 1">
+            <button onclick="applyManualMarker()" class="btn-mini">OK</button>
+        </div>
+    </div>
+
+<script>
+    // --- Data Model ---
+    // Struktur Recursive: Node -> { title, paragraphs[], children[], type (A., 1., etc), manualLabel (optional) }
+    
+    let docData = {
+        title: "JUDUL MATERI",
+        desc: "Deskripsi Singkat Materi",
+        children: [
+            {
+                type: "A.", // Default Type
+                title: "Pendahuluan",
+                paragraphs: ["Ini adalah contoh paragraf yang menjorok ke dalam (indent) pada baris pertama, namun rata kiri sejajar dengan huruf judul di atasnya, bukan dengan nomor."],
+                children: [
+                    {
+                        type: "1.",
+                        title: "Latar Belakang",
+                        paragraphs: ["Sub poin otomatis menjorok lebih dalam karena nesting flexbox."],
+                        children: []
+                    }
+                ]
+            }
+        ]
+    };
+
+    // State untuk Marker Selector
+    let selectedNodePath = null; 
+
+    // --- Rendering Logic ---
+
+    function render() {
+        const paper = document.getElementById('paper');
+        paper.innerHTML = '';
+
+        // 1. Main Title & Desc
+        const h1 = document.createElement('div');
+        h1.className = 'main-doc-title';
+        h1.contentEditable = true;
+        h1.innerText = docData.title;
+        h1.onblur = (e) => docData.title = e.target.innerText;
+        paper.appendChild(h1);
+
+        const desc = document.createElement('div');
+        desc.className = 'main-doc-desc';
+        desc.contentEditable = true;
+        desc.innerText = docData.desc;
+        desc.onblur = (e) => docData.desc = e.target.innerText;
+        paper.appendChild(desc);
+
+        // 2. Render Recursive Nodes
+        // Kita butuh counter global per level untuk merender urutan (A, B... 1, 2...)
+        renderNodes(docData.children, paper, []);
+    }
+
+    function renderNodes(nodes, container, path) {
+        // Counter object untuk scope level ini
+        let counters = {
+            'A.': 0, 'a.': 0, '1.': 0, 'a)': 0, 'I.': 0
+        };
+
+        nodes.forEach((node, index) => {
+            const currentPath = [...path, index];
+            
+            // Create Wrapper
+            const wrapper = document.createElement('div');
+            wrapper.className = 'node-wrapper';
+
+            // --- 1. Marker Logic ---
+            const markerDiv = document.createElement('div');
+            markerDiv.className = 'node-marker';
+            
+            let markerText = "";
+            // Jika Manual Label ada, gunakan itu
+            if (node.manualLabel) {
+                markerText = node.manualLabel;
+            } else {
+                // Auto calculation
+                markerText = getAutoMarker(node.type, counters);
+            }
+            markerDiv.innerText = markerText;
+            markerDiv.onclick = (e) => openMarkerSelector(e, currentPath);
+            wrapper.appendChild(markerDiv);
+
+            // --- 2. Content Column ---
+            const contentCol = document.createElement('div');
+            contentCol.className = 'node-content-col';
+
+            // Title
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'node-title';
+            titleDiv.innerHTML = `<span contenteditable="true">${node.title}</span>`;
+            
+            // Event Listener Title Edit
+            titleDiv.querySelector('span').onblur = (e) => {
+                getNode(currentPath).title = e.target.innerText;
+            };
+
+            // Controls (Add/Del)
+            const controls = document.createElement('span');
+            controls.className = 'hover-controls';
+            controls.innerHTML = `
+                <button class="btn-mini" onclick="addParagraph(${JSON.stringify(currentPath)})">+ Teks</button>
+                <button class="btn-mini" onclick="addChild(${JSON.stringify(currentPath)})">+ Poin</button>
+                <button class="btn-mini btn-del" onclick="deleteNode(${JSON.stringify(currentPath)})"><i class="fas fa-times"></i></button>
+            `;
+            titleDiv.appendChild(controls);
+            contentCol.appendChild(titleDiv);
+
+            // Paragraphs
+            if(node.paragraphs) {
+                node.paragraphs.forEach((pText, pIndex) => {
+                    const pDiv = document.createElement('div');
+                    pDiv.className = 'node-paragraph';
+                    pDiv.contentEditable = true;
+                    pDiv.innerText = pText;
+                    pDiv.onblur = (e) => {
+                        getNode(currentPath).paragraphs[pIndex] = e.target.innerText;
+                        // Hapus paragraf jika kosong
+                        if(!e.target.innerText.trim()) {
+                            getNode(currentPath).paragraphs.splice(pIndex, 1);
+                            render();
+                        }
+                    };
+                    contentCol.appendChild(pDiv);
+                });
+            }
+
+            // Children Container (Recursive)
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'node-children';
+            
+            if (node.children && node.children.length > 0) {
+                renderNodes(node.children, childrenContainer, currentPath);
+            }
+            contentCol.appendChild(childrenContainer);
+
+            wrapper.appendChild(contentCol);
+            container.appendChild(wrapper);
+        });
+    }
+
+    // --- Helper Logic ---
+
+    function getAutoMarker(type, counters) {
+        if (type === 'circle') return '○';
+        if (type === 'disc') return '●';
+        if (type === 'dash') return '-';
+        if (type === 'square') return '■';
+
+        // Increment counter
+        if (counters[type] === undefined) counters[type] = 0;
+        counters[type]++;
+        const num = counters[type];
+
+        if (type === 'A.') return String.fromCharCode(64 + num) + "."; // A. B.
+        if (type === 'a.') return String.fromCharCode(96 + num) + "."; // a. b.
+        if (type === 'a)') return String.fromCharCode(96 + num) + ")"; // a) b)
+        if (type === '1.') return num + "."; // 1. 2.
+        
+        return "•"; // Default fallback
+    }
+
+    function getNode(path) {
+        let current = docData;
+        for (let i of path) {
+            current = current.children[i];
+        }
+        return current;
+    }
+
+    function getParent(path) {
+        if (path.length === 0) return null; // Root doesn't have parent accessible this way for modification
+        let current = docData;
+        for (let i = 0; i < path.length - 1; i++) {
+            current = current.children[path[i]];
+        }
+        return current;
+    }
+
+    // --- Actions ---
+
+    function addRootNode() {
+        docData.children.push({ type: "A.", title: "Bab Baru", paragraphs: [], children: [] });
+        render();
+    }
+
+    function addChild(path) {
+        const parent = getNode(path);
+        if (!parent.children) parent.children = [];
+        
+        // Cerdik: Tebak tipe anak berdasarkan level kedalaman atau tipe bapaknya
+        let newType = "1.";
+        if (parent.type === "A.") newType = "1.";
+        else if (parent.type === "1.") newType = "a)";
+        else if (parent.type === "a)") newType = "dash";
+
+        parent.children.push({ type: newType, title: "Poin Baru", paragraphs: [], children: [] });
+        render();
+    }
+
+    function addParagraph(path) {
+        const node = getNode(path);
+        if (!node.paragraphs) node.paragraphs = [];
+        node.paragraphs.push("Klik untuk tulis paragraf...");
+        render();
+    }
+
+    function deleteNode(path) {
+        if (!confirm("Hapus poin ini?")) return;
+        const index = path[path.length - 1];
+        if (path.length === 1) {
+            // Root level
+            docData.children.splice(index, 1);
+        } else {
+            const parent = getParent(path);
+            parent.children.splice(index, 1);
+        }
+        render();
+    }
+
+    // --- Marker Selector Logic ---
+    function openMarkerSelector(e, path) {
+        e.stopPropagation();
+        selectedNodePath = path;
+        const modal = document.getElementById('markerSelector');
+        const rect = e.target.getBoundingClientRect();
+        modal.style.display = 'block';
+        modal.style.top = (rect.bottom + window.scrollY) + 'px';
+        modal.style.left = rect.left + 'px';
+        
+        // Reset input manual
+        document.getElementById('customMarkerInput').value = "";
+    }
+
+    function applyMarker(type) {
+        if (selectedNodePath) {
+            const node = getNode(selectedNodePath);
+            node.type = type;
+            node.manualLabel = null; // Reset manual label if switching back to auto
+            render();
+        }
+        document.getElementById('markerSelector').style.display = 'none';
+    }
+
+    function applyManualMarker() {
+        const val = document.getElementById('customMarkerInput').value;
+        if (selectedNodePath && val) {
+            const node = getNode(selectedNodePath);
+            node.manualLabel = val + " "; // Add space for aesthetics
+            render();
+        }
+        document.getElementById('markerSelector').style.display = 'none';
+    }
+
+    // Close modal on click outside
+    document.addEventListener('click', function(event) {
+        const modal = document.getElementById('markerSelector');
+        if (event.target.closest('.node-marker') || event.target.closest('.marker-selector')) return;
+        modal.style.display = 'none';
+    });
+
+
+    // --- File Handling (Save/Import) ---
+    function downloadJson() {
+        const str = JSON.stringify(docData, null, 2);
+        const blob = new Blob([str], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (document.getElementById('filename').value || "materi") + ".json";
+        a.click();
+    }
+
+    function createNew() {
+        if(confirm("Buat baru? Data yang belum disimpan akan hilang.")) {
+            docData = { title: "JUDUL BARU", desc: "...", children: [] };
+            render();
+        }
+    }
+
+    function handleFile(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        if (file.name.endsWith('.json')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                docData = JSON.parse(e.target.result);
+                render();
+            };
+            reader.readAsText(file);
+        } else if (file.name.endsWith('.docx')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                mammoth.convertToHtml({arrayBuffer: e.target.result})
+                    .then(result => {
+                        importHtmlFromDocx(result.value);
+                    })
+                    .catch(err => alert(err));
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    }
+
+    // Heuristic Import yang lebih canggih untuk struktur baru
+    function importHtmlFromDocx(html) {
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        
+        const newChildren = [];
+        let currentSection = null;
+        let currentPoint = null;
+
+        // Reset
+        docData.children = [];
+        docData.title = "Hasil Import DOCX";
+        docData.desc = "Silakan rapikan struktur di bawah ini.";
+
+        Array.from(temp.children).forEach(el => {
+            const text = el.innerText.trim();
+            if (!text) return;
+
+            // Deteksi Judul Utama (Pertemuan X)
+            if (text.toLowerCase().startsWith('pert ') || el.tagName === 'H1') {
+                currentSection = {
+                    type: "manual", // Pakai manual label biar aman
+                    manualLabel: text.split('-')[0].trim() || "BAB",
+                    title: text.includes('-') ? text.split('-')[1].trim() : text,
+                    paragraphs: [],
+                    children: []
+                };
+                docData.children.push(currentSection);
+                currentPoint = null;
+            } 
+            // Deteksi Poin A. B. C.
+            else if (el.tagName === 'H2' || (el.tagName === 'P' && /^[A-Z]\./.test(text))) {
+                if (!currentSection) {
+                    currentSection = { type: "A.", title: "Pendahuluan Import", paragraphs: [], children: [] };
+                    docData.children.push(currentSection);
+                }
+                
+                // Bersihkan "A. " dari judul
+                const cleanTitle = text.replace(/^[A-Z]\.\s*/, '');
+                
+                currentPoint = {
+                    type: "1.",
+                    title: cleanTitle,
+                    paragraphs: [],
+                    children: []
+                };
+                currentSection.children.push(currentPoint);
+            }
+            // Konten Paragraf / Sub Poin
+            else {
+                if (currentPoint) {
+                    currentPoint.paragraphs.push(text);
+                } else if (currentSection) {
+                    // Masuk ke section jika belum ada point
+                    // Buat dummy point jika perlu atau masukkan ke paragraf section (tp struktur kita section gapunya paragraf lgsg selain children)
+                    // Kita buat paragraf di section children dummy
+                    let dummy = currentSection.children.find(c => c.title === "Intro");
+                    if (!dummy) {
+                        dummy = { type: "dash", title: "Deskripsi", paragraphs: [], children: []};
+                        currentSection.children.unshift(dummy);
+                    }
+                    dummy.paragraphs.push(text);
+                }
+            }
+        });
+        
+        render();
+        alert("Import Selesai. Gunakan fitur 'Marker' untuk merapikan penomoran.");
+    }
+
+    // Init
+    render();
+</script>
+
+</body>
+</html>
