@@ -1,3 +1,10 @@
+:root {
+            --sidebar-width: min-content;
+            --bg-color: #f4f4f9;
+            --sidebar-bg: #282828;
+            --accent: #007bff;
+            --text-light: #fff;
+        }
 body {
  display: flex;
  margin: 0;
@@ -19,10 +26,10 @@ body {
 #sidebar .brand {
  font-size: 1.2rem;
  text-align: center;
- padding: 20px 0;
+ padding: 2px 0;
  font-weight: bold;
- border-bottom: 1px solid #444;
- margin-bottom: 10px;
+ border-bottom: 3px solid #7677a8;
+ margin-bottom: 1px;
  color: white;
  text-decoration: none;
 }
@@ -30,16 +37,17 @@ body {
 #sidebar a.nav-link {
  display: block;
  color: #ccc;
- padding: 15px 25px;
+ padding: 1px 2px;
  text-decoration: none;
  font-size: 1rem;
  border-left: 5px solid transparent;
+ border-bottom: 1px solid #7677a8;
  transition: all 0.3s;
 }
 
 #sidebar a.nav-link:hover,
 #sidebar a.nav-link.active {
- background-color: #3e3e3e;
+ background-color: #000000;
  color: #fff;
  border-left: 5px solid var(--accent);
 }

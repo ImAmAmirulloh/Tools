@@ -4,20 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Name Manager & Cleaner</title>
+    <link rel="stylesheet" href="style.css">
     <style>
-        :root {
-            --bg-color: #f4f7f6;
-            --text-color: #333;
-            --accent-color: #007bff;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 30px;
-            max-width: 1100px;
-            margin: 0 auto;
-        }
         h2 { font-weight: 600; margin-bottom: 5px; }
         p.subtitle { color: #666; margin-bottom: 30px; font-size: 15px; }
         
@@ -53,7 +41,6 @@
         
         button {
             background-color: var(--accent-color);
-            color: #fff;
             border: none;
             padding: 10px 20px;
             font-size: 15px;
@@ -97,13 +84,21 @@
         <a href="index.html" class="nav-link">Advanced Cleaner</a>
         <a href="TextCleaner.html" class="nav-link">Quote Cleaner</a>
         <a href="ListChecker.html" class="nav-link">List Checker</a>
-        <a href="FileNameManager.html" class="nav-link active">File Name Manager</a>
         <a href="materiApp.html" class="nav-link">materi App</a>
         <a href="PearsonProductMomentV3.html" class="nav-link">Pearson Calculator</a>
         <a href="korelasiGanda.html" class="nav-link">Korelasi Ganda</a>
+        <a href="Alphabetizer.html" class="nav-link">Alphabetizer</a>
+        <a href="RandomLetters.html" class="nav-link">Random Letters</a>
+        <a href="NumLED.html" class="nav-link">Num LED</a>
+        <a href="JsonSrt.html" class="nav-link">Json to Srt</a>
+        <a href="CSScolor.html" class="nav-link">CSS Color</a>
+        <a href="calendar.html" class="nav-link">Calendar</a>
+        <a href="FileNameCleaner.html" class="nav-link active">File Name Cleaner</a>
+        <a href="Renamer/BulkRenamer.html" class="nav-link">Bulk Renamer</a>
     </nav>
-    <h2>Manajer & Pembersih Nama File</h2>
-    <p class="subtitle">Bersihkan teks mentah dari clipboard, lalu kelompokkan file yang memiliki format penamaan seiras.</p>
+    <div class="main-content">
+        <h2>Manajer & Pembersih Nama File</h2>
+        <p class="subtitle">Bersihkan teks mentah dari clipboard, lalu kelompokkan file yang memiliki format penamaan seiras.</p>
 
     <div class="container">
         <div class="col">
@@ -111,41 +106,42 @@
             <textarea id="rawInput" placeholder="Paste di sini...&#10;Contoh:&#10;list file copy:&#10;video 01.mp4 23459 210125&#10;gambar-A.jpg 1024 2023"></textarea>
             <button onclick="cleanText()">Bersihkan & Pindahkan ➡️</button>
         </div>
-
+        
         <div class="col">
             <h3>📄 Langkah 2: List Nama File Bersih</h3>
             <textarea id="inputList" placeholder="Hasil file bersih akan muncul di sini..."></textarea>
             <button class="btn-process" onclick="processFiles()">Kelompokkan & Analisis ⬇️</button>
         </div>
     </div>
-
+    
     <div id="output">
         <div style="color: #999; font-style: italic; text-align: center;">Hasil grup dan analisis akan muncul di sini...</div>
     </div>
-
+    
     <dialog id="infoModal">
         <h3>🔍 Detail Otentikasi</h3>
         <p id="modalText"></p>
         <button style="background: #333;" onclick="document.getElementById('infoModal').close()">Tutup</button>
     </dialog>
-
+    </div>
+    
     <script>
         // --- FITUR BARU: PEMBERSIH TEKS MENTAH ---
         function cleanText() {
             const rawText = document.getElementById('rawInput').value;
             const lines = rawText.split('\n');
             let cleanedLines = [];
-
+            
             // Daftar kata yang sering jadi header sampah
             const ignoreKeywords = ['list file copy:', 'nama file', 'size', 'date modified', 'ukuran'];
-
+            
             lines.forEach(line => {
                 let trimmed = line.trim();
                 if (!trimmed) return; // Abaikan baris kosong
-
+                
                 // Abaikan baris yang mengandung keyword sampah
                 if (ignoreKeywords.some(kw => trimmed.toLowerCase().includes(kw))) return;
-
+                
                 // Regex: Cari nama file sampai ketemu ekstensi umum (3-4 huruf setelah titik)
                 // Contoh memotong: "video.mp4 1234 kb" menjadi "video.mp4"
                 const extMatch = trimmed.match(/^(.+?\.[a-zA-Z0-9]{2,4})(?=\s|$)/);
@@ -159,18 +155,18 @@
                     cleanedLines.push(noTrailingJunk.trim());
                 }
             });
-
+            
             // Pindahkan hasilnya ke textarea sebelah kanan
             document.getElementById('inputList').value = cleanedLines.join('\n');
         }
-
+        
         // --- ALGORITMA PENGELOMPOKAN ---
         
         // 1. Masking Angka
         function maskNumbers(str) {
             return str.replace(/\d+_\d+/g, '#_#').replace(/\d+/g, '#');
         }
-
+        
         // 2. Levenshtein (Deteksi Typo Huruf)
         function levenshtein(s1, s2) {
             let costs = [];

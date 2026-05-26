@@ -7,15 +7,16 @@
 
   <!-- Stylesheet utama -->
   <link rel="stylesheet" href="BulkRenamer.css" />
+  <link rel="stylesheet" href="style.css" />
 
   <style>
     /* Minimal inline reset so preview tampil rapi jika CSS belum dimuat */
     :root {
-      --bg:#f6f7fb; --card:#ffffff; --muted:#6b7280; --accent:#2563eb;
+      --card:#ffffff; --muted:#6b7280;
       --gap:16px;
     }
     html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;}
-    body{background:var(--bg);color:#111;padding:24px;box-sizing:border-box;}
+    body{background:var(--bg-color);color:#111;padding:24px;box-sizing:border-box;}
     .app{display:grid;grid-template-columns:320px 1fr 360px;gap:var(--gap);align-items:start;}
     header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
     header h1{font-size:1.125rem;margin:0;}
@@ -38,18 +39,40 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>Multiple Renamer</h1>
-    <div class="header-actions">
-      <button id="downloadZipBtn" title="Download hasil sebagai ZIP">Download Zip</button>
-    </div>
-  </header>
-
-  <main class="app" id="app">
+  <!-- SIDEBAR -->
+    <nav id="sidebar">
+        <div class="brand">My Tools</div>
+        <a href="index.html" class="nav-link active">Advanced Cleaner</a>
+        <a href="TextCleaner.html" class="nav-link">Quote Cleaner</a>
+        <a href="ListChecker.html" class="nav-link">List Checker</a>
+        <a href="FileNameManager.html" class="nav-link">File Name Manager</a>
+        <a href="materiApp.html" class="nav-link">materi App</a>
+        <a href="PearsonProductMomentV3.html" class="nav-link">Pearson Calculator</a>
+        <a href="korelasiGanda.html" class="nav-link">Korelasi Ganda</a>
+        <a href="Alphabetizer.html" class="nav-link">Alphabetizer</a>
+        <a href="RandomLetters.html" class="nav-link">Random Letters</a>
+        <a href="NumLED.html" class="nav-link">Num LED</a>
+        <a href="JsonSrt.html" class="nav-link">Json to Srt</a>
+        <a href="CSScolor.html" class="nav-link">CSS Color</a>
+        <a href="calendar.html" class="nav-link">Calendar</a>
+        <a href="FileNameCleaner.html" class="nav-link">File Name Cleaner</a>
+        <a href="Renamer/BulkRenamer.html" class="nav-link">Bulk Renamer</a>
+      </nav>
+      
+      <!-- CONTENT -->
+      <div class="main-content">
+        <header>
+          <h1>Multiple Renamer</h1>
+          <div class="header-actions">
+            <button id="downloadZipBtn" title="Download hasil sebagai ZIP">Download Zip</button>
+          </div>
+        </header>
+        
+        <main class="app" id="app">
     <!-- Panel kiri: Original files -->
     <aside class="card panel" aria-labelledby="originalTitle">
       <h2 id="originalTitle" style="font-size:0.95rem;margin:0 0 8px 0;">Original</h2>
-
+      
       <!-- Upload / drag-drop -->
       <div class="card upload" style="margin-bottom:8px;">
         <label for="fileInput" style="font-weight:600;">Unggah file (drag & drop didukung)</label>
@@ -58,44 +81,44 @@
           Seret file ke area ini atau klik untuk memilih.
         </div>
       </div>
-
+      
       <!-- File list -->
       <ul id="fileList" class="file-list" aria-live="polite"></ul>
-
+      
       <div class="actions" style="margin-top:8px;">
         <button id="selectAllBtn" class="ghost" type="button">Pilih Semua</button>
         <button id="clearBtn" class="ghost" type="button">Hapus Semua</button>
       </div>
     </aside>
-
+    
     <!-- Panel tengah: Preview -->
     <section class="card panel" aria-labelledby="previewTitle">
       <h2 id="previewTitle" style="font-size:0.95rem;margin:0 0 8px 0;">Preview</h2>
-
+      
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
         <label style="margin:0;font-size:0.85rem;color:var(--muted);">Tampilkan perubahan</label>
         <input id="showOnlyChanged" type="checkbox" />
       </div>
-
+      
       <ul id="previewList" class="preview-list" aria-live="polite"></ul>
-
+      
       <div class="actions">
         <button id="applyBtn" class="primary" type="button">Terapkan Rename</button>
         <button id="resetBtn" class="ghost" type="button">Reset</button>
       </div>
     </section>
-
+    
     <!-- Panel kanan: Options -->
     <aside class="card panel" aria-labelledby="optionsTitle">
       <h2 id="optionsTitle" style="font-size:0.95rem;margin:0 0 8px 0;">Options</h2>
-
+      
       <form id="optionsForm" class="controls" autocomplete="off" novalidate>
         <!-- Change Based Name -->
         <div>
           <label for="basedName">Change Based Name</label>
           <input id="basedName" name="basedName" type="text" placeholder="Masukkan nama dasar (opsional)" />
         </div>
-
+        
         <!-- Indexing -->
         <fieldset style="border:1px dashed #e6e9ef;padding:8px;border-radius:6px;">
           <legend style="font-size:0.9rem;color:var(--muted);">Indexing</legend>
@@ -116,7 +139,7 @@
             <input id="indexPadding" name="indexPadding" type="number" value="0" min="0" />
           </div>
         </fieldset>
-
+        
         <!-- Capitalization -->
         <div>
           <label>Capitalization</label>
@@ -127,7 +150,7 @@
             <label><input type="radio" name="cap" value="title" checked /> ProverCase</label>
           </div>
         </div>
-
+        
         <!-- Prefix / Suffix -->
         <div>
           <label for="prefix">Prefix</label>
@@ -137,7 +160,7 @@
           <label for="suffix">Suffix</label>
           <input id="suffix" name="suffix" type="text" placeholder="Suffix (opsional)" />
         </div>
-
+        
         <!-- Date -->
         <fieldset style="border:1px dashed #e6e9ef;padding:8px;border-radius:6px;">
           <legend style="font-size:0.9rem;color:var(--muted);">Date</legend>
@@ -150,22 +173,22 @@
             <input id="timeFormat" name="timeFormat" type="text" placeholder="eg H-m-s" />
           </div>
         </fieldset>
-
+        
         <!-- Additions / Array -->
         <div>
           <label for="addText1">Add Text 1</label>
           <input id="addText1" name="addText1" type="text" placeholder="Tambahan teks" />
         </div>
-
+        
         <div>
           <label for="arrayInput">Add by Array (eg: Abc, Def, Ghi)</label>
           <textarea id="arrayInput" name="arrayInput" rows="3" placeholder="Pisahkan dengan koma"></textarea>
         </div>
-
+        
         <!-- Trim / Replace / Regex -->
         <fieldset style="border:1px dashed #e6e9ef;padding:8px;border-radius:6px;">
           <legend style="font-size:0.9rem;color:var(--muted);">Transformations</legend>
-
+          
           <div>
             <label>Trim Whitespace</label>
             <div class="row">
@@ -175,7 +198,7 @@
               <label><input type="radio" name="trim" value="all" /> All</label>
             </div>
           </div>
-
+          
           <div>
             <label for="replaceFind">Replace Character</label>
             <div class="row">
@@ -183,7 +206,7 @@
               <input id="replaceWith" name="replaceWith" type="text" placeholder="Replace" />
             </div>
           </div>
-
+          
           <div>
             <label for="regexInput">Remove by Regex</label>
             <div class="row">
@@ -193,7 +216,7 @@
             <div id="regexList" style="font-size:0.85rem;color:var(--muted);margin-top:6px;"></div>
           </div>
         </fieldset>
-
+        
         <!-- Positions (drag/drop) -->
         <div>
           <label>Positions (drag untuk urutkan)</label>
@@ -213,37 +236,38 @@
       </form>
     </aside>
   </main>
-
-  <!-- Libraries: JSZip, FileSaver, SortableJS, dayjs, lodash -->
+    </div>
+    <!-- Libraries: JSZip, FileSaver, SortableJS, dayjs, lodash -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.9/dayjs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js" defer></script>
-
+  
   <!-- App script -->
   <script src="BulkRenamer.js" defer></script>
 </body>
 </html>
-      <ul id="previewList" class="preview-list" aria-live="polite">
-        <!-- JS akan render preview mapping original -> new -->
-      </ul>
+<div class="main-content">
+<ul id="previewList" class="preview-list" aria-live="polite">
+  <!-- JS akan render preview mapping original -> new -->
+</ul>
 
-      <div class="actions">
-        <button id="applyBtn">Terapkan Rename</button>
-        <button id="resetBtn" class="ghost">Reset</button>
-      </div>
-    </section>
+<div class="actions">
+  <button id="applyBtn">Terapkan Rename</button>
+  <button id="resetBtn" class="ghost">Reset</button>
+</div>
+</section>
 
-    <!-- Panel kanan: Options -->
-    <aside class="card panel" aria-labelledby="optionsTitle">
-      <h2 id="optionsTitle" style="font-size:0.95rem;margin:0 0 8px 0;">Options</h2>
-
-      <form id="optionsForm" class="controls" autocomplete="off" novalidate>
-        <!-- Change Based Name -->
-        <div>
-          <label for="basedName">Change Based Name</label>
-          <input id="basedName" name="basedName" type="text" placeholder="Masukkan nama dasar (opsional)" />
+<!-- Panel kanan: Options -->
+<aside class="card panel" aria-labelledby="optionsTitle">
+  <h2 id="optionsTitle" style="font-size:0.95rem;margin:0 0 8px 0;">Options</h2>
+  
+  <form id="optionsForm" class="controls" autocomplete="off" novalidate>
+    <!-- Change Based Name -->
+    <div>
+      <label for="basedName">Change Based Name</label>
+      <input id="basedName" name="basedName" type="text" placeholder="Masukkan nama dasar (opsional)" />
         </div>
 
         <!-- Indexing -->
@@ -363,7 +387,7 @@
       </form>
     </aside>
   </main>
-
+</div>
   <script>
     /**
      * Minimal JS skeleton: state, basic DOM hooks, and renderPreview stub.
