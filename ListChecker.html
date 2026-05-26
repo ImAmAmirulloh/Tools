@@ -13,16 +13,22 @@
             --text: #24292f;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
+            flex-wrap: wrap;
         }
         .header-controls {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+        }
+        h1 {
+            display: block;
+            font-size: 2em;
+            margin-block-start: 0.67em;
+            margin-block-end: 0.67em;
+            margin-inline-start: 0px;
+            margin-inline-end: 0px;
+            font-weight: bold;
+            unicode-bidi: isolate;
         }
         button {
             background-color: var(--primary);
@@ -106,21 +112,23 @@
         <a href="korelasiGanda.html" class="nav-link">Korelasi Ganda</a>
     </nav>
     
-    <h1>Multiple List Checker</h1>
-    <p>Paste your lists below (one item per line). Changes are saved automatically to your browser.</p>
-
-    <div class="header-controls">
-        <button onclick="addList()">+ Add New Column</button>
-        <button onclick="compareLists()" style="background-color: #0969da;">Compare Lists</button>
-        <button onclick="clearAll()" class="danger">Clear Data</button>
-    </div>
-
-    <div class="lists-wrapper" id="listsContainer">
+    <div class="main-content">
+        <h1>Multiple List Checker</h1>
+        
+        <div class="header-controls">
+            <button onclick="addList()">+ Add New Column</button>
+            <button onclick="compareLists()" style="background-color: #0969da;">Compare Lists</button>
+            <button onclick="clearAll()" class="danger">Clear Data</button>
         </div>
 
-    <div class="results-section" id="resultsContainer" style="display: none;">
-        <h2>Comparison Results</h2>
-        <div id="tableContainer"></div>
+        <div class="lists-wrapper" id="listsContainer">
+            </div>
+
+        <div class="results-section" id="resultsContainer" style="display: none;">
+            <h2>Comparison Results</h2>
+            <div id="tableContainer"></div>
+        </div>
+    
     </div>
 
     <script>
