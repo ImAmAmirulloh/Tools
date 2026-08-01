@@ -136,8 +136,12 @@
   th.col-game:hover .col-remove{display:inline;}
 
   tbody tr.rk-row{
-    transition:background .18s ease, transform .18s ease, box-shadow .18s ease;
+    transition:background .18s ease, transform .18s ease, box-shadow .18s ease, opacity .25s ease;
     border-radius:10px;
+  }
+  tbody tr.rk-row.row-enter{
+    opacity:0;
+    transform:translateY(6px);
   }
   tbody tr.rk-row td{
     padding:.6rem .6rem;
@@ -481,6 +485,7 @@
 
   var pendingNewPhoto = null;
   var changePhotoTargetId = null;
+  var rowsById = {}; // playerId -> <tr>, kept stable across renders so rows can animate to their new position
 
   newPlayerIconPreview.innerHTML = ICON_SVG;
   titleEl.textContent = state.title || 'TOP SCORERS';
@@ -563,13 +568,79 @@
   }
 
   function renderBody(){
-    bodyEl.innerHTML = '';
     emptyEl.hidden = state.players.length !== 0;
 
+    // FLIP step 1 (First): remember where every existing row currently sits
+    var firstTops = {};
+    Array.prototype.forEach.call(bodyEl.children, function(row){
+      if(row.dataset && row.dataset.playerId){
+        firstTops[row.dataset.playerId] = row.getBoundingClientRect().top;
+      }
+    });
+
+    var seenIds = {};
     state.players.forEach(function(player, index){
-      var tr = document.createElement('tr');
-      tr.className = 'rk-row';
-      tr.dataset.playerId = player.id;
+      var tr = rowsById[player.id];
+      var isNewRow = !tr;
+      if(isNewRow){
+        tr = document.createElement('tr');
+        tr.className = 'rk-row row-enter';
+        tr.dataset.playerId = player.id;
+        // touch: tap row reveals the options button (mirrors :hover on desktop)
+        // attached once here since this <tr> is reused across future renders
+        tr.addEventListener('touchstart', function(){
+          var active = document.querySelectorAll('tr.rk-row.touch-active');
+          for(var k=0;k<active.length;k++){ if(active[k] !== tr){ active[k].classList.remove('touch-active'); } }
+          tr.classList.toggle('touch-active');
+        }, {passive:true});
+        rowsById[player.id] = tr;
+      }
+      buildRowContent(tr, player, index);
+      bodyEl.appendChild(tr); // moves the row to its correct position in the new order
+      seenIds[player.id] = true;
+    });
+
+    // drop rows for players that no longer exist
+    Object.keys(rowsById).forEach(function(id){
+      if(!seenIds[id]){
+        rowsById[id].remove();
+        delete rowsById[id];
+      }
+    });
+
+    // FLIP steps 2-4 (Last, Invert, Play): glide every moved row from its old spot to the new one
+    Array.prototype.forEach.call(bodyEl.children, function(row){
+      var id = row.dataset.playerId;
+      if(row.classList.contains('row-enter')){
+        // new row: let it fade/slide in instead of flying from an old position
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){ row.classList.remove('row-enter'); });
+        });
+        return;
+      }
+      var first = firstTops[id];
+      if(first == null) return;
+      var last = row.getBoundingClientRect().top;
+      var delta = first - last;
+      if(Math.abs(delta) < 1) return;
+      row.style.transition = 'none';
+      row.style.transform = 'translateY(' + delta + 'px)';
+      row.offsetHeight; // force reflow so the browser locks in the start position
+      requestAnimationFrame(function(){
+        row.style.transition = 'transform .38s cubic-bezier(.22,.9,.3,1)';
+        row.style.transform = '';
+        row.addEventListener('transitionend', function handler(e){
+          if(e.propertyName === 'transform'){
+            row.style.transition = '';
+            row.removeEventListener('transitionend', handler);
+          }
+        });
+      });
+    });
+  }
+
+  function buildRowContent(tr, player, index){
+    tr.innerHTML = '';
 
       // rank
       var rankTd = document.createElement('td');
@@ -712,20 +783,10 @@
         }
       });
 
-      optsWrap.appendChild(optsBtn);
-      optsWrap.appendChild(menu);
-      optsTd.appendChild(optsWrap);
-      tr.appendChild(optsTd);
-
-      // touch: tap row reveals the options button (mirrors :hover on desktop)
-      tr.addEventListener('touchstart', function(){
-        var active = document.querySelectorAll('tr.rk-row.touch-active');
-        for(var k=0;k<active.length;k++){ if(active[k] !== tr){ active[k].classList.remove('touch-active'); } }
-        tr.classList.toggle('touch-active');
-      }, {passive:true});
-
-      bodyEl.appendChild(tr);
-    });
+    optsWrap.appendChild(optsBtn);
+    optsWrap.appendChild(menu);
+    optsTd.appendChild(optsWrap);
+    tr.appendChild(optsTd);
   }
 
   // ---------- add player modal ----------
