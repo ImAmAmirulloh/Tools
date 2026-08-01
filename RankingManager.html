@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ranking Manager</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  /* ---------- layout glue with the shared template ---------- */
+  .main-content{
+    flex:1 1 auto;
+    min-height:100vh;
+  }
+
+  /* ---------- Ranking Manager (scoped to this tool) ---------- */
+  .rk-app{
+    position:relative;
+    overflow:hidden;
+    min-height:100vh;
+    padding:2.5rem clamp(1rem,4vw,3rem) 4rem;
+    background:linear-gradient(135deg,#5a35e8 0%, #3466e0 55%, #14b6ef 100%);
+    box-sizing:border-box;
+  }
+  .rk-bg-shape{
+    position:absolute;
+    right:-5%;
+    bottom:-8%;
+    width:55%;
+    height:260px;
+    background:rgba(255,255,255,.07);
+    clip-path:polygon(100% 0, 100% 100%, 15% 100%);
+    pointer-events:none;
+  }
+  .rk-bg-shape::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:rgba(20,10,60,.15);
+    clip-path:inherit;
+  }
+
+  .rk-header-top{display:flex;align-items:center;gap:.7rem;position:relative;z-index:1;}
+  .rk-trophy{width:38px;height:38px;flex-shrink:0;fill:#ffd447;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));}
+  .rk-title{
+    margin:0;
+    font-size:clamp(1.5rem,3vw,2.3rem);
+    font-weight:900;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    color:#fff;
+    outline:none;
+    cursor:text;
+    border-bottom:2px dashed transparent;
+    padding-bottom:3px;
+  }
+  .rk-title:hover{border-bottom-color:rgba(255,255,255,.45);}
+  .rk-title:focus{border-bottom-color:#fff;}
+  .rk-hint{
+    margin:.35rem 0 0 3.1rem;
+    font-size:.78rem;
+    color:rgba(255,255,255,.65);
+    position:relative;
+    z-index:1;
+  }
+
+  .rk-toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.7rem;
+    margin:1.6rem 0 1.4rem;
+    position:relative;
+    z-index:1;
+  }
+  .rk-btn{
+    border:none;
+    border-radius:8px;
+    padding:.62rem 1.1rem;
+    font-size:.83rem;
+    font-weight:700;
+    letter-spacing:.2px;
+    cursor:pointer;
+    transition:transform .12s ease, background .15s ease, opacity .15s ease;
+    font-family:inherit;
+  }
+  .rk-btn:active{transform:scale(.95);}
+  .rk-btn-primary{background:var(--accent,#007bff);color:#fff;}
+  .rk-btn-primary:hover{background:#0069d9;}
+  .rk-btn-ghost{background:rgba(255,255,255,.14);color:#fff;}
+  .rk-btn-ghost:hover{background:rgba(255,255,255,.24);}
+  .rk-btn-danger{background:#e2434f;color:#fff;}
+  .rk-btn-danger:hover{background:#c8323d;}
+
+  .rk-table-wrap{
+    position:relative;
+    z-index:1;
+    background:rgba(14,10,46,.4);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:16px;
+    padding:.4rem 1rem 1rem;
+    box-shadow:0 14px 34px rgba(0,0,0,.28);
+    backdrop-filter:blur(8px);
+    overflow-x:auto;
+  }
+  table.rk-table{width:100%;border-collapse:collapse;min-width:560px;}
+  .rk-table thead th{
+    text-align:left;
+    font-size:.7rem;
+    font-weight:800;
+    letter-spacing:.6px;
+    text-transform:uppercase;
+    color:rgba(255,255,255,.62);
+    padding:.9rem .6rem .7rem;
+    border-bottom:1px solid rgba(255,255,255,.14);
+    white-space:nowrap;
+  }
+  th.col-rank{width:36px;text-align:center;}
+  th.col-total{text-align:center;}
+  th.col-opts{width:34px;}
+  th.col-game{text-align:center;}
+  th.col-game .colname{
+    outline:none;
+    cursor:text;
+    border-bottom:1px dashed transparent;
+    padding-bottom:2px;
+  }
+  th.col-game .colname:hover{border-bottom-color:rgba(255,255,255,.4);}
+  th.col-game .colname:focus{border-bottom-color:#fff;color:#fff;}
+  th.col-game .col-remove{
+    display:none;
+    margin-left:5px;
+    color:rgba(255,255,255,.45);
+    cursor:pointer;
+    font-size:.68rem;
+  }
+  th.col-game .col-remove:hover{color:#ff8080;}
+  th.col-game:hover .col-remove{display:inline;}
+
+  tbody tr.rk-row{
+    transition:background .18s ease, transform .18s ease, box-shadow .18s ease;
+    border-radius:10px;
+  }
+  tbody tr.rk-row td{
+    padding:.6rem .6rem;
+    border-bottom:1px solid rgba(255,255,255,.07);
+    vertical-align:middle;
+  }
+  tbody tr.rk-row:hover,
+  tbody tr.rk-row.touch-active{
+    background:rgba(255,255,255,.09);
+    transform:scale(1.012);
+    box-shadow:0 8px 20px rgba(0,0,0,.28);
+    position:relative;
+    z-index:2;
+  }
+
+  .rk-rank{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:26px;
+    height:26px;
+    margin:0 auto;
+    border-radius:8px;
+    font-weight:900;
+    font-size:.9rem;
+    color:#fff;
+  }
+  .rk-rank.gold{background:linear-gradient(135deg,#ffe27a,#ffb238);color:#3a2400;}
+  .rk-rank.silver{background:linear-gradient(135deg,#f1f4f9,#c3c9d4);color:#2b2f38;}
+  .rk-rank.bronze{background:linear-gradient(135deg,#e8b381,#b97444);color:#3a1f00;}
+
+  .rk-player{display:flex;align-items:center;gap:.7rem;}
+  .rk-avatar{
+    width:38px;height:38px;flex-shrink:0;
+    border-radius:10px;
+    background:linear-gradient(135deg,#4aa8ff,#3560ff);
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .rk-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
+  .rk-avatar svg{width:58%;height:58%;fill:#fff;}
+  tr.rk-row:hover .rk-avatar,
+  tr.rk-row.touch-active .rk-avatar{
+    transform:scale(1.18);
+    box-shadow:0 6px 16px rgba(0,0,0,.35);
+  }
+  .rk-name{
+    font-weight:700;
+    font-size:.92rem;
+    color:#fff;
+    outline:none;
+    transition:color .18s ease;
+  }
+  .rk-name[contenteditable="true"]{border-bottom:1px dashed #fff;}
+  tr.rk-row:hover .rk-name,
+  tr.rk-row.touch-active .rk-name{color:#ffd447;}
+
+  .rk-score{display:flex;align-items:center;justify-content:center;gap:.4rem;}
+  .rk-step{
+    width:22px;height:22px;
+    border:none;border-radius:6px;
+    background:rgba(255,255,255,.14);
+    color:#fff;font-weight:900;font-size:.9rem;line-height:1;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;
+    transition:background .15s ease, transform .1s ease, opacity .15s ease;
+    font-family:inherit;
+  }
+  tr.rk-row:hover .rk-step,
+  tr.rk-row.touch-active .rk-step,
+  .rk-step:focus-visible{
+    opacity:1;
+  }
+  .rk-step:hover{background:rgba(255,255,255,.3);}
+  .rk-step:active{transform:scale(.88);}
+  .rk-score-val{min-width:20px;text-align:center;font-weight:700;color:#fff;font-size:.88rem;}
+
+  .rk-total{text-align:center;font-weight:900;font-size:1.02rem;color:#5be2ff;}
+
+  .rk-opts-wrap{position:relative;text-align:center;}
+  .rk-opts-btn{
+    opacity:0;
+    background:transparent;border:none;
+    color:rgba(255,255,255,.85);
+    font-size:1.1rem;line-height:1;
+    padding:5px 8px;border-radius:6px;
+    cursor:pointer;
+    transition:opacity .15s ease, background .15s ease;
+  }
+  tr.rk-row:hover .rk-opts-btn,
+  tr.rk-row.touch-active .rk-opts-btn,
+  .rk-opts-btn.menu-open{
+    opacity:1;
+    background:rgba(255,255,255,.1);
+  }
+  .rk-opts-menu{
+    position:absolute;right:0;top:100%;
+    margin-top:4px;
+    background:#1c1840;
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;
+    padding:.35rem;
+    min-width:168px;
+    box-shadow:0 14px 32px rgba(0,0,0,.45);
+    z-index:30;
+    display:none;
+    text-align:left;
+  }
+  .rk-opts-menu.open{display:block;}
+  .rk-opts-menu button{
+    display:flex;align-items:center;gap:.5rem;
+    width:100%;background:none;border:none;
+    color:#fff;font-size:.83rem;font-family:inherit;
+    padding:.5rem .6rem;border-radius:7px;
+    cursor:pointer;text-align:left;
+  }
+  .rk-opts-menu button:hover{background:rgba(255,255,255,.09);}
+  .rk-opts-menu button.danger{color:#ff8f8f;}
+
+  .rk-empty{
+    position:relative;z-index:1;
+    text-align:center;
+    color:rgba(255,255,255,.75);
+    padding:2.2rem 1rem;
+    font-size:.92rem;
+  }
+
+  /* modal */
+  .rk-modal-overlay{
+    position:fixed;inset:0;
+    background:rgba(8,6,26,.62);
+    backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;
+    z-index:200;
+    padding:1rem;
+  }
+  .rk-modal-overlay[hidden]{display:none;}
+  .rk-modal{
+    background:#1c1840;
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:16px;
+    padding:1.6rem;
+    width:min(380px,100%);
+    color:#fff;
+    box-shadow:0 24px 60px rgba(0,0,0,.5);
+    box-sizing:border-box;
+  }
+  .rk-modal h2{margin:0 0 .2rem;font-size:1.15rem;font-weight:800;}
+  .rk-modal label{
+    display:block;
+    font-size:.72rem;font-weight:700;
+    letter-spacing:.4px;text-transform:uppercase;
+    color:rgba(255,255,255,.6);
+    margin:1rem 0 .35rem;
+  }
+  .rk-modal input[type="text"]{
+    width:100%;box-sizing:border-box;
+    padding:.6rem .75rem;
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.07);
+    color:#fff;font-size:.9rem;font-family:inherit;
+  }
+  .rk-modal input[type="text"]:focus{outline:none;border-color:var(--accent,#007bff);}
+  .rk-photo-picker{display:flex;align-items:center;gap:.9rem;}
+  .rk-photo-preview,
+  .rk-avatar-icon-preview{
+    width:52px;height:52px;flex-shrink:0;
+    border-radius:12px;
+    background:linear-gradient(135deg,#4aa8ff,#3560ff);
+    object-fit:cover;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+  }
+  .rk-avatar-icon-preview svg{width:58%;height:58%;fill:#fff;}
+  .rk-modal input[type="file"]{
+    font-size:.78rem;color:rgba(255,255,255,.75);
+    max-width:190px;
+  }
+  .rk-modal-actions{
+    display:flex;justify-content:flex-end;gap:.6rem;
+    margin-top:1.5rem;
+  }
+
+  @media (hover:none){
+    .rk-opts-btn{opacity:.55;}
+    .rk-step{opacity:.55;}
+    th.col-game .col-remove{display:inline;opacity:.5;}
+  }
+  @media (max-width:640px){
+    .rk-hint{margin-left:0;}
+  }
+</style>
+</head>
+<body>
+<!-- SIDEBAR -->
+    <nav id="sidebar">
+        <div class="brand">My Tools</div>
+        <a href="index.html" class="nav-link">Advanced Cleaner</a>
+        <a href="TextCleaner.html" class="nav-link">Quote Cleaner</a>
+        <a href="ListChecker.html" class="nav-link">List Checker</a>
+        <a href="FileNameManager.html" class="nav-link">File Name Manager</a>
+        <a href="materiApp.html" class="nav-link">materi App</a>
+        <a href="PearsonProductMomentV3.html" class="nav-link">Pearson Calculator</a>
+        <a href="korelasiGanda.html" class="nav-link">Korelasi Ganda</a>
+        <a href="Alphabetizer.html" class="nav-link">Alphabetizer</a>
+        <a href="RandomLetters.html" class="nav-link">Random Letters</a>
+        <a href="NumLED.html" class="nav-link">Num LED</a>
+        <a href="JsonSrt.html" class="nav-link">Json to Srt</a>
+        <a href="CSScolor.html" class="nav-link">CSS Color</a>
+        <a href="calendar.html" class="nav-link">Calendar</a>
+        <a href="FileNameCleaner.html" class="nav-link">File Name Cleaner</a>
+        <a href="Renamer/BulkRenamer.html" class="nav-link">Bulk Renamer</a>
+        <a href="RankingManager.html" class="nav-link active">Ranking Manager</a>
+    </nav>
+    <!-- CONTENT -->
+    <div class="main-content">
+      <div class="rk-app" id="rkApp">
+        <div class="rk-bg-shape"></div>
+
+        <header>
+          <div class="rk-header-top">
+            <svg class="rk-trophy" viewBox="0 0 24 24"><path d="M18 3h3a1 1 0 0 1 1 1v2a4 4 0 0 1-4 4h-.08A6.01 6.01 0 0 1 13 14.9V17h2a2 2 0 0 1 2 2v1H7v-1a2 2 0 0 1 2-2h2v-2.1A6.01 6.01 0 0 1 6.08 10H6a4 4 0 0 1-4-4V4a1 1 0 0 1 1-1h3V2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1ZM4 5v1a2 2 0 0 0 2 2v-3H4Zm16 0h-2v3a2 2 0 0 0 2-2V5Z"/></svg>
+            <h1 class="rk-title" id="rkTitle" contenteditable="true" spellcheck="false">TOP SCORERS</h1>
+          </div>
+          <p class="rk-hint">Klik judul untuk mengganti nama papan skor &mdash; tersimpan otomatis</p>
+        </header>
+
+        <div class="rk-toolbar">
+          <button type="button" class="rk-btn rk-btn-primary" id="btnAddPlayer">+ Tambah Pemain</button>
+          <button type="button" class="rk-btn rk-btn-ghost" id="btnAddColumn">+ Tambah Kolom Game</button>
+        </div>
+
+        <div class="rk-table-wrap">
+          <table class="rk-table">
+            <thead>
+              <tr id="rkHeadRow">
+                <th class="col-rank">#</th>
+                <th class="col-player">Pemain</th>
+                <th class="col-total">Total</th>
+                <th class="col-opts"></th>
+              </tr>
+            </thead>
+            <tbody id="rkBody"></tbody>
+          </table>
+        </div>
+        <p class="rk-empty" id="rkEmpty" hidden>Belum ada pemain. Klik &ldquo;Tambah Pemain&rdquo; untuk memulai papan skor.</p>
+      </div>
+    </div>
+
+    <!-- Add player modal -->
+    <div class="rk-modal-overlay" id="addPlayerOverlay" hidden>
+      <div class="rk-modal">
+        <h2>Tambah Pemain</h2>
+        <label for="newPlayerName">Nama Pemain</label>
+        <input type="text" id="newPlayerName" placeholder="Masukkan nama...">
+        <label>Foto (opsional)</label>
+        <div class="rk-photo-picker">
+          <img id="newPlayerPreview" class="rk-photo-preview" hidden alt="Preview foto">
+          <div id="newPlayerIconPreview" class="rk-avatar-icon-preview"></div>
+          <input type="file" id="newPlayerPhotoInput" accept="image/*">
+        </div>
+        <div class="rk-modal-actions">
+          <button type="button" class="rk-btn rk-btn-ghost" id="btnCancelAddPlayer">Batal</button>
+          <button type="button" class="rk-btn rk-btn-primary" id="btnConfirmAddPlayer">Tambah</button>
+        </div>
+      </div>
+    </div>
+
+    <input type="file" id="changePhotoInput" accept="image/*" style="display:none">
+
+<script>
+(function(){
+  'use strict';
+
+  var STORAGE_KEY = 'rankingManager_data_v1';
+  var ICON_SVG = '<svg viewBox="0 0 24 24"><path d="M12 12c2.71 0 4.9-2.19 4.9-4.9S14.71 2.2 12 2.2 7.1 4.39 7.1 7.1 9.29 12 12 12Zm0 2.45c-3.31 0-9.8 1.66-9.8 4.96V22h19.6v-2.59c0-3.3-6.49-4.96-9.8-4.96Z"/></svg>';
+
+  var state = loadState();
+
+  function uid(){
+    return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8);
+  }
+
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        var parsed = JSON.parse(raw);
+        if(parsed && Array.isArray(parsed.columns) && Array.isArray(parsed.players)){
+          return parsed;
+        }
+      }
+    }catch(e){ console.warn('Ranking Manager: gagal memuat data tersimpan', e); }
+    return {
+      title: 'TOP SCORERS',
+      columns: [ {id: uid(), name: 'Game 1'}, {id: uid(), name: 'Game 2'} ],
+      players: []
+    };
+  }
+
+  function saveState(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }catch(e){
+      console.error('Ranking Manager: gagal menyimpan data', e);
+      alert('Gagal menyimpan data. Penyimpanan browser mungkin penuh (biasanya karena terlalu banyak foto beresolusi besar).');
+    }
+  }
+
+  function computeTotal(player){
+    var sum = 0;
+    for(var i=0;i<state.columns.length;i++){
+      var v = Number(player.scores[state.columns[i].id]);
+      sum += isNaN(v) ? 0 : v;
+    }
+    return sum;
+  }
+
+  function sortPlayers(){
+    state.players.sort(function(a,b){ return computeTotal(b) - computeTotal(a); });
+  }
+
+  // ---------- DOM refs ----------
+  var titleEl = document.getElementById('rkTitle');
+  var headRow = document.getElementById('rkHeadRow');
+  var bodyEl = document.getElementById('rkBody');
+  var emptyEl = document.getElementById('rkEmpty');
+  var btnAddPlayer = document.getElementById('btnAddPlayer');
+  var btnAddColumn = document.getElementById('btnAddColumn');
+  var addPlayerOverlay = document.getElementById('addPlayerOverlay');
+  var newPlayerName = document.getElementById('newPlayerName');
+  var newPlayerPhotoInput = document.getElementById('newPlayerPhotoInput');
+  var newPlayerPreview = document.getElementById('newPlayerPreview');
+  var newPlayerIconPreview = document.getElementById('newPlayerIconPreview');
+  var btnCancelAddPlayer = document.getElementById('btnCancelAddPlayer');
+  var btnConfirmAddPlayer = document.getElementById('btnConfirmAddPlayer');
+  var changePhotoInput = document.getElementById('changePhotoInput');
+
+  var pendingNewPhoto = null;
+  var changePhotoTargetId = null;
+
+  newPlayerIconPreview.innerHTML = ICON_SVG;
+  titleEl.textContent = state.title || 'TOP SCORERS';
+
+  titleEl.addEventListener('blur', function(){
+    var val = titleEl.textContent.replace(/\s+/g,' ').trim() || 'TOP SCORERS';
+    titleEl.textContent = val;
+    state.title = val;
+    saveState();
+  });
+  titleEl.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); titleEl.blur(); }
+  });
+
+  function closeAllMenus(){
+    var menus = document.querySelectorAll('.rk-opts-menu.open');
+    for(var i=0;i<menus.length;i++){ menus[i].classList.remove('open'); }
+    var btns = document.querySelectorAll('.rk-opts-btn.menu-open');
+    for(var j=0;j<btns.length;j++){ btns[j].classList.remove('menu-open'); }
+  }
+  document.addEventListener('click', closeAllMenus);
+
+  function placeCaretAtEnd(el){
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  function render(){
+    sortPlayers();
+    renderHead();
+    renderBody();
+    saveState();
+  }
+
+  function renderHead(){
+    var oldCols = headRow.querySelectorAll('th.col-game');
+    for(var i=0;i<oldCols.length;i++){ oldCols[i].remove(); }
+    var totalTh = headRow.querySelector('.col-total');
+
+    state.columns.forEach(function(col){
+      var th = document.createElement('th');
+      th.className = 'col-game';
+
+      var span = document.createElement('span');
+      span.className = 'colname';
+      span.contentEditable = 'true';
+      span.spellcheck = false;
+      span.textContent = col.name;
+      span.addEventListener('blur', function(){
+        var val = this.textContent.replace(/\s+/g,' ').trim() || col.name;
+        this.textContent = val;
+        col.name = val;
+        saveState();
+      });
+      span.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); this.blur(); }
+      });
+
+      var remove = document.createElement('span');
+      remove.className = 'col-remove';
+      remove.textContent = '\u2715';
+      remove.title = 'Hapus kolom ini';
+      remove.addEventListener('click', function(){
+        if(state.columns.length <= 1){ alert('Minimal harus ada 1 kolom game.'); return; }
+        if(confirm('Hapus kolom "' + col.name + '"? Semua skor di kolom ini akan hilang.')){
+          state.columns = state.columns.filter(function(c){ return c.id !== col.id; });
+          state.players.forEach(function(p){ delete p.scores[col.id]; });
+          render();
+        }
+      });
+
+      th.appendChild(span);
+      th.appendChild(remove);
+      headRow.insertBefore(th, totalTh);
+    });
+  }
+
+  function renderBody(){
+    bodyEl.innerHTML = '';
+    emptyEl.hidden = state.players.length !== 0;
+
+    state.players.forEach(function(player, index){
+      var tr = document.createElement('tr');
+      tr.className = 'rk-row';
+      tr.dataset.playerId = player.id;
+
+      // rank
+      var rankTd = document.createElement('td');
+      var rank = index + 1;
+      var rankSpan = document.createElement('span');
+      rankSpan.className = 'rk-rank' + (rank === 1 ? ' gold' : rank === 2 ? ' silver' : rank === 3 ? ' bronze' : '');
+      rankSpan.textContent = rank;
+      rankTd.appendChild(rankSpan);
+      tr.appendChild(rankTd);
+
+      // player (avatar + name)
+      var playerTd = document.createElement('td');
+      var playerWrap = document.createElement('div');
+      playerWrap.className = 'rk-player';
+
+      var avatar = document.createElement('div');
+      avatar.className = 'rk-avatar';
+      if(player.photo){
+        var img = document.createElement('img');
+        img.src = player.photo;
+        img.alt = player.name;
+        avatar.appendChild(img);
+      } else {
+        avatar.innerHTML = ICON_SVG;
+      }
+
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'rk-name';
+      nameSpan.textContent = player.name;
+      nameSpan.spellcheck = false;
+      nameSpan.addEventListener('blur', function(){
+        this.contentEditable = 'false';
+        var val = this.textContent.replace(/\s+/g,' ').trim();
+        if(val){ player.name = val; }
+        this.textContent = player.name;
+        saveState();
+      });
+      nameSpan.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); this.blur(); }
+      });
+
+      playerWrap.appendChild(avatar);
+      playerWrap.appendChild(nameSpan);
+      playerTd.appendChild(playerWrap);
+      tr.appendChild(playerTd);
+
+      // score columns
+      state.columns.forEach(function(col){
+        var td = document.createElement('td');
+        var wrap = document.createElement('div');
+        wrap.className = 'rk-score';
+
+        var minus = document.createElement('button');
+        minus.type = 'button';
+        minus.className = 'rk-step';
+        minus.textContent = '\u2212';
+        minus.setAttribute('aria-label', 'Kurangi skor');
+        minus.addEventListener('click', function(){
+          var cur = Number(player.scores[col.id]) || 0;
+          player.scores[col.id] = Math.max(0, cur - 1);
+          render();
+        });
+
+        var val = document.createElement('span');
+        val.className = 'rk-score-val';
+        val.textContent = Number(player.scores[col.id]) || 0;
+
+        var plus = document.createElement('button');
+        plus.type = 'button';
+        plus.className = 'rk-step';
+        plus.textContent = '+';
+        plus.setAttribute('aria-label', 'Tambah skor');
+        plus.addEventListener('click', function(){
+          var cur = Number(player.scores[col.id]) || 0;
+          player.scores[col.id] = cur + 1;
+          render();
+        });
+
+        wrap.appendChild(minus);
+        wrap.appendChild(val);
+        wrap.appendChild(plus);
+        td.appendChild(wrap);
+        tr.appendChild(td);
+      });
+
+      // total
+      var totalTd = document.createElement('td');
+      totalTd.className = 'rk-total';
+      totalTd.textContent = computeTotal(player);
+      tr.appendChild(totalTd);
+
+      // options
+      var optsTd = document.createElement('td');
+      var optsWrap = document.createElement('div');
+      optsWrap.className = 'rk-opts-wrap';
+
+      var optsBtn = document.createElement('button');
+      optsBtn.type = 'button';
+      optsBtn.className = 'rk-opts-btn';
+      optsBtn.innerHTML = '\u22EE';
+      optsBtn.setAttribute('aria-label', 'Opsi pemain');
+
+      var menu = document.createElement('div');
+      menu.className = 'rk-opts-menu';
+      menu.innerHTML =
+        '<button type="button" data-action="rename">\u270F\uFE0F Ganti Nama</button>' +
+        '<button type="button" data-action="photo">\uD83D\uDDBC\uFE0F Ubah Foto</button>' +
+        '<button type="button" data-action="delete" class="danger">\uD83D\uDDD1\uFE0F Hapus</button>';
+
+      optsBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var isOpen = menu.classList.contains('open');
+        closeAllMenus();
+        if(!isOpen){
+          menu.classList.add('open');
+          optsBtn.classList.add('menu-open');
+        }
+      });
+
+      menu.querySelector('[data-action="rename"]').addEventListener('click', function(e){
+        e.stopPropagation();
+        closeAllMenus();
+        nameSpan.contentEditable = 'true';
+        nameSpan.focus();
+        placeCaretAtEnd(nameSpan);
+      });
+      menu.querySelector('[data-action="photo"]').addEventListener('click', function(e){
+        e.stopPropagation();
+        closeAllMenus();
+        changePhotoTargetId = player.id;
+        changePhotoInput.value = '';
+        changePhotoInput.click();
+      });
+      menu.querySelector('[data-action="delete"]').addEventListener('click', function(e){
+        e.stopPropagation();
+        closeAllMenus();
+        if(confirm('Hapus "' + player.name + '" dari papan skor?')){
+          state.players = state.players.filter(function(p){ return p.id !== player.id; });
+          render();
+        }
+      });
+
+      optsWrap.appendChild(optsBtn);
+      optsWrap.appendChild(menu);
+      optsTd.appendChild(optsWrap);
+      tr.appendChild(optsTd);
+
+      // touch: tap row reveals the options button (mirrors :hover on desktop)
+      tr.addEventListener('touchstart', function(){
+        var active = document.querySelectorAll('tr.rk-row.touch-active');
+        for(var k=0;k<active.length;k++){ if(active[k] !== tr){ active[k].classList.remove('touch-active'); } }
+        tr.classList.toggle('touch-active');
+      }, {passive:true});
+
+      bodyEl.appendChild(tr);
+    });
+  }
+
+  // ---------- add player modal ----------
+  function openAddPlayerModal(){
+    newPlayerName.value = '';
+    pendingNewPhoto = null;
+    newPlayerPreview.hidden = true;
+    newPlayerIconPreview.hidden = false;
+    newPlayerPhotoInput.value = '';
+    addPlayerOverlay.hidden = false;
+    setTimeout(function(){ newPlayerName.focus(); }, 20);
+  }
+  function closeAddPlayerModal(){ addPlayerOverlay.hidden = true; }
+
+  btnAddPlayer.addEventListener('click', openAddPlayerModal);
+  btnCancelAddPlayer.addEventListener('click', closeAddPlayerModal);
+  addPlayerOverlay.addEventListener('click', function(e){
+    if(e.target === addPlayerOverlay){ closeAddPlayerModal(); }
+  });
+
+  newPlayerPhotoInput.addEventListener('change', function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    resizeImageToDataUrl(file, 160, function(dataUrl){
+      pendingNewPhoto = dataUrl;
+      newPlayerPreview.src = dataUrl;
+      newPlayerPreview.hidden = false;
+      newPlayerIconPreview.hidden = true;
+    });
+  });
+
+  btnConfirmAddPlayer.addEventListener('click', function(){
+    var name = newPlayerName.value.replace(/\s+/g,' ').trim();
+    if(!name){ newPlayerName.focus(); return; }
+    var scores = {};
+    state.columns.forEach(function(c){ scores[c.id] = 0; });
+    state.players.push({ id: uid(), name: name, photo: pendingNewPhoto, scores: scores });
+    closeAddPlayerModal();
+    render();
+  });
+
+  newPlayerName.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); btnConfirmAddPlayer.click(); }
+  });
+
+  changePhotoInput.addEventListener('change', function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file || !changePhotoTargetId) return;
+    resizeImageToDataUrl(file, 160, function(dataUrl){
+      var player = state.players.filter(function(p){ return p.id === changePhotoTargetId; })[0];
+      if(player){ player.photo = dataUrl; render(); }
+      changePhotoTargetId = null;
+    });
+  });
+
+  function resizeImageToDataUrl(file, maxSize, cb){
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        var w = img.width, h = img.height;
+        if(w > h){ if(w > maxSize){ h = Math.round(h * maxSize / w); w = maxSize; } }
+        else { if(h > maxSize){ w = Math.round(w * maxSize / h); h = maxSize; } }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        cb(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = function(){ cb(ev.target.result); };
+      img.src = ev.target.result;
+    };
+    reader.onerror = function(){ console.error('Ranking Manager: gagal membaca file gambar'); };
+    reader.readAsDataURL(file);
+  }
+
+  btnAddColumn.addEventListener('click', function(){
+    var name = prompt('Nama kolom game baru:', 'Game ' + (state.columns.length + 1));
+    if(name === null) return;
+    var trimmed = name.replace(/\s+/g,' ').trim();
+    if(!trimmed) return;
+    var col = { id: uid(), name: trimmed };
+    state.columns.push(col);
+    state.players.forEach(function(p){ p.scores[col.id] = 0; });
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
